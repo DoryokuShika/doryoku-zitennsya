@@ -4,7 +4,9 @@ using UnityEngine;
 
 public class Shinngoukichenge : MonoBehaviour
 {
-    [SerializeField] float chengeTime =3f;
+    [SerializeField] float chengeTime =2f;
+    [SerializeField] float startTime = 8f;
+
 
     [SerializeField] Material red;
     [SerializeField] Material blue;
@@ -23,7 +25,7 @@ public class Shinngoukichenge : MonoBehaviour
    
     void Start()
     {
-        
+        timer = -startTime +chengeTime;
 
     }
     void Update()
@@ -32,7 +34,15 @@ public class Shinngoukichenge : MonoBehaviour
         if (timer > chengeTime)
         {
             chenge();
-            timer = 0f;
+            if (state == 0)
+            {
+                timer = 0f;
+                timer += 2f;
+            }
+            else
+            {
+                timer = 0f;
+            }
         }
     }
     
@@ -50,6 +60,7 @@ public class Shinngoukichenge : MonoBehaviour
             {
                 redModel.GetComponent<Renderer>().material = nomal;
                 blueModel.GetComponent<Renderer>().material = blue;
+
                 walkred.GetComponent<Renderer>().material = nomal;
                 walkblue.GetComponent<Renderer>().material = blue;
             state = 2;
@@ -58,6 +69,8 @@ public class Shinngoukichenge : MonoBehaviour
             {
                 blueModel.GetComponent<Renderer>().material = nomal;
                 yellowModel.GetComponent<Renderer>().material = yellow;
+
+
                 walkblue.GetComponent<Renderer>().material = nomal;
                 walkred.GetComponent<Renderer>().material = red;
             state = 0;
