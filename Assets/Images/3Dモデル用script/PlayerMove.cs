@@ -60,7 +60,6 @@ public class PlayerMovement : MonoBehaviour
     void RotatePlayer()
     {
         float rotationY = 0f;
-        float rotationX = 0f;
 
         if (Input.GetKey(KeyCode.LeftArrow))
         {
@@ -70,7 +69,6 @@ public class PlayerMovement : MonoBehaviour
         {
             rotationY += RotationSpeed;
         }
-      
 
         transform.Rotate(0f, rotationY * Time.deltaTime, 0f);  // ƒvƒŒƒCƒ„[©‘Ì‚ğ‰ñ“]
     }
