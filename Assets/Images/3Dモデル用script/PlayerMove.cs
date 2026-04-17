@@ -52,11 +52,6 @@ public class PlayerMove : MonoBehaviour
         if (Time.frameCount > mouseIgnoreFramesAfterStart)
             MouseLook();
 
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
         if (Input.GetMouseButtonDown(0) && Cursor.lockState != CursorLockMode.Locked)
         {
             Cursor.lockState = CursorLockMode.Locked;
