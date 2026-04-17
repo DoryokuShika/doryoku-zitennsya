@@ -1,0 +1,15 @@
+# Unity YAML merge driver - prevents git from creating conflict markers in scene/prefab files
+*.unity merge=unityyamlmerge
+*.prefab merge=unityyamlmerge
+*.asset merge=unityyamlmerge
+*.meta merge=unityyamlmerge
+
+# Treat Unity binary files as binary (no text diffs)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.psd binary
+*.fbx binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
