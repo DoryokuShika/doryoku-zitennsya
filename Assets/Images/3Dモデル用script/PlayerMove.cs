@@ -1,85 +1,97 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 
+/// <summary>
+/// Constant forward movement; mouse yaw changes direction. Hold S to brake and stop.
+/// </summary>
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMove : MonoBehaviour
 {
-    public Transform Camera;
-    public float PlayerSpeed;
-    public float RotationSpeed;
-    Vector3 startPosition;
+    [Header("Movement")]
+    [Tooltip("Target forward speed when not braking.")]
+    public float ForwardSpeed = 8f;
+    [Tooltip("Acceleration toward target speed (units per second).")]
+    public float AccelerationPerSecond = 35f;
+    [Tooltip("Deceleration while S is held (units per second).")]
+    public float BrakePerSecond = 50f;
+
+    [Header("Physics (optional)")]
+    public RigidbodyInterpolation PositionInterpolation = RigidbodyInterpolation.Interpolate;
+    public CollisionDetectionMode PhysicsCollisionMode = CollisionDetectionMode.Continuous;
+
+    float yaw;
+    float currentForwardSpeed;
+    Rigidbody rb;
+
+    [SerializeField]
+    [Tooltip("Ignore mouse deltas for this many frames after start (avoids a jump when the cursor locks).")]
+    int mouseIgnoreFramesAfterStart = 3;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.interpolation = PositionInterpolation;
+        rb.collisionDetectionMode = PhysicsCollisionMode;
+    }
 
     void Start()
     {
-       startPosition = transform.position;
+        yaw = transform.eulerAngles.y;
+        if (yaw > 180f) yaw -= 360f;
+
+        ApplyBodyRotation();
+        currentForwardSpeed = ForwardSpeed;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        rb.freezeRotation = true;
     }
 
     void Update()
     {
-        move();
-        RotatePlayer();
-        CameraFollow();
+        if (Time.frameCount > mouseIgnoreFramesAfterStart)
+            MouseLook();
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        if (Input.GetMouseButtonDown(0) && Cursor.lockState != CursorLockMode.Locked)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
-    void OnCollisionEnter(Collision collision)
+    void FixedUpdate()
     {
-        if (collision.gameObject.CompareTag("Enemy"))
-        {
-            transform.position = startPosition; // プレイヤーを初期位置に戻す
-        }
+        MoveForwardAndBrake();
     }
 
-    void move()
+    void MouseLook()
     {
-        var speed = Vector3.zero;
+        if (Cursor.lockState != CursorLockMode.Locked)
+            return;
 
-        if (Input.GetKey(KeyCode.S))
-        {
-            speed.z -= PlayerSpeed;
-        }
-        if (Input.GetKey(KeyCode.W))
-        {
-            speed.z += PlayerSpeed;
-        }
-        if (Input.GetKey(KeyCode.D))
-        {
-            speed.x += PlayerSpeed;
-        }
-        if (Input.GetKey(KeyCode.A))
-        {
-            speed.x -= PlayerSpeed;
-        }
-        if (Input.GetKey(KeyCode.Space))
-        {
-            speed.y += PlayerSpeed;
-        }
-        transform.Translate(speed * Time.deltaTime);
+        float dx = Input.GetAxis("Mouse X");
+        yaw += dx;
+        ApplyBodyRotation();
     }
 
-    void RotatePlayer()
+    void ApplyBodyRotation()
     {
-        float rotationY = 0f;
-        float rotationX = 0f;
-
-        if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            rotationY -= RotationSpeed;
-        }
-        if (Input.GetKey(KeyCode.RightArrow))
-        {
-            rotationY += RotationSpeed;
-        }
-      
-
-        transform.Rotate(0f, rotationY * Time.deltaTime, 0f);  // プレイヤー自体を回転
+        transform.rotation = Quaternion.AngleAxis(yaw, Vector3.up);
     }
 
-    void CameraFollow()
+    void MoveForwardAndBrake()
     {
-        Camera.position = transform.position;
-        Camera.rotation = transform.rotation;
-    }
+        float target = Input.GetKey(KeyCode.S) ? 0f : ForwardSpeed;
+        float rate = Input.GetKey(KeyCode.S) ? BrakePerSecond : AccelerationPerSecond;
+        currentForwardSpeed = Mathf.MoveTowards(currentForwardSpeed, target, rate * Time.fixedDeltaTime);
 
-    
+        Vector3 forwardDir = Quaternion.AngleAxis(yaw, Vector3.up) * Vector3.forward;
+        Vector3 horizontal = forwardDir * currentForwardSpeed;
+        rb.velocity = new Vector3(horizontal.x, rb.velocity.y, horizontal.z);
+    }
 }
