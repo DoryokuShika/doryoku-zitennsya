@@ -10481,8 +10481,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 577d7cb85c52c2d4f93fcd6ba89de95a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   moveSpeed: 5
   mouseSensitivity: 2
 --- !u!4 &964765312 stripped
