@@ -22,16 +22,19 @@ public class Gemeover : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
+            Timer.isRunning = false;
             ShowCursor();
             SceneManager.LoadScene("GameOverScene");
         }
         if (collision.gameObject.CompareTag("Car"))
         {
+            Timer.isRunning = false;
             ShowCursor();
             SceneManager.LoadScene("DiedScene");
         }
         if (collision.gameObject.CompareTag("Walker"))
         {
+            Timer.isRunning = false;
             ShowCursor();
             SceneManager.LoadScene("GameOverScene");
         }
