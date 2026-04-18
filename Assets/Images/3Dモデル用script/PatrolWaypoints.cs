@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// 空の GameObject をシーン上に置き、Waypoints に Transform を順番に割り当てるとその順で周回します。
-/// NavMeshAgent があればナビ、無ければ直線移動（Rigidbody または Transform）。
+/// Waypoints を順に周回。到達したら待たずに次のポイントへ向けてすぐ走り出す。
+/// NavMeshAgent 使用時は距離で到達判定（減速しきるまで待たない）。直線移動時も同様。
 /// </summary>
 public class PatrolWaypoints : MonoBehaviour
 {
@@ -14,9 +14,8 @@ public class PatrolWaypoints : MonoBehaviour
     [Header("Movement")]
     [SerializeField] float moveSpeed = 3.5f;
     [SerializeField] float rotateSpeed = 360f;
+    [Tooltip("この距離以内に入ったら到達とみなし、すぐ次のウェイポイントへ切り替え")]
     [SerializeField] float arrivalDistance = 0.4f;
-    [Tooltip("各ポイントで止まる秒数（0 で即次へ）")]
-    [SerializeField] float waitSecondsPerPoint = 2f;
     [SerializeField] bool loopRoute = true;
     [SerializeField] bool startPatrollingOnEnable = true;
 
@@ -25,8 +24,6 @@ public class PatrolWaypoints : MonoBehaviour
     bool useNavMesh;
     bool useRigidbodyMove;
     int currentIndex;
-    float waitTimer;
-    bool waiting;
     bool patrolling;
     bool navArrivalLatch;
 
@@ -41,6 +38,8 @@ public class PatrolWaypoints : MonoBehaviour
             navAgent.speed = moveSpeed;
             navAgent.angularSpeed = rotateSpeed;
             navAgent.stoppingDistance = arrivalDistance;
+            navAgent.updateRotation = true;
+            navAgent.autoBraking = false;
         }
     }
 
@@ -60,18 +59,6 @@ public class PatrolWaypoints : MonoBehaviour
         if (!patrolling || waypoints == null || waypoints.Length == 0)
             return;
 
-        if (waiting)
-        {
-            waitTimer -= Time.deltaTime;
-            if (waitTimer <= 0f)
-            {
-                waiting = false;
-                AdvanceIndex();
-                GoToCurrentWaypoint();
-            }
-            return;
-        }
-
         Transform target = waypoints[currentIndex];
         if (target == null)
         {
@@ -89,8 +76,7 @@ public class PatrolWaypoints : MonoBehaviour
     void UpdateNavMesh(Transform target)
     {
         if (!navAgent.pathPending && navAgent.hasPath &&
-            navAgent.remainingDistance <= arrivalDistance &&
-            navAgent.velocity.sqrMagnitude < 0.01f)
+            navAgent.remainingDistance <= arrivalDistance)
         {
             if (!navArrivalLatch)
             {
@@ -108,19 +94,16 @@ public class PatrolWaypoints : MonoBehaviour
     {
         Vector3 p = transform.position;
         Vector3 flatTarget = new Vector3(target.position.x, p.y, target.position.z);
+        Vector3 dir = flatTarget - p;
+        dir.y = 0f;
+        if (dir.sqrMagnitude > 0.0001f)
+            transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+
         Vector3 next = Vector3.MoveTowards(p, flatTarget, moveSpeed * Time.deltaTime);
         if (useRigidbodyMove)
             rb.MovePosition(next);
         else
             transform.position = next;
-
-        Vector3 dir = flatTarget - p;
-        dir.y = 0f;
-        if (dir.sqrMagnitude > 0.0001f)
-        {
-            Quaternion look = Quaternion.LookRotation(dir.normalized, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, rotateSpeed * Time.deltaTime);
-        }
 
         if ((flatTarget - next).sqrMagnitude <= arrivalDistance * arrivalDistance)
             OnReachedWaypoint();
@@ -128,18 +111,8 @@ public class PatrolWaypoints : MonoBehaviour
 
     void OnReachedWaypoint()
     {
-        if (waitSecondsPerPoint > 0f)
-        {
-            waiting = true;
-            waitTimer = waitSecondsPerPoint;
-            if (useNavMesh)
-                navAgent.ResetPath();
-        }
-        else
-        {
-            AdvanceIndex();
-            GoToCurrentWaypoint();
-        }
+        AdvanceIndex();
+        GoToCurrentWaypoint();
     }
 
     void AdvanceIndex()
@@ -167,8 +140,20 @@ public class PatrolWaypoints : MonoBehaviour
         if (t == null)
             return;
         navArrivalLatch = false;
+        FaceHorizontalToward(t.position);
         if (useNavMesh)
             navAgent.SetDestination(t.position);
+    }
+
+    void FaceHorizontalToward(Vector3 worldPos)
+    {
+        Vector3 p = transform.position;
+        Vector3 flat = new Vector3(worldPos.x, p.y, worldPos.z);
+        Vector3 dir = flat - p;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f)
+            return;
+        transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
     }
 
     /// <summary>周回を開始（外部から呼び出し可）</summary>
@@ -180,7 +165,6 @@ public class PatrolWaypoints : MonoBehaviour
             return;
         }
         patrolling = true;
-        waiting = false;
         navArrivalLatch = false;
         currentIndex = 0;
         GoToCurrentWaypoint();
@@ -195,7 +179,6 @@ public class PatrolWaypoints : MonoBehaviour
     void StopPatrolInternal()
     {
         patrolling = false;
-        waiting = false;
         if (useNavMesh && navAgent != null && navAgent.isActiveAndEnabled)
             navAgent.ResetPath();
     }
