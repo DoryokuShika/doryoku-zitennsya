@@ -1,0 +1,6 @@
+* text=auto
+
+*.unity merge=unityyamlmerge
+*.prefab merge=unityyamlmerge
+*.asset merge=unityyamlmerge
+*.meta merge=unityyamlmerge
