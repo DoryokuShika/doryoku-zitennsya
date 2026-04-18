@@ -3838,7 +3838,7 @@ MonoBehaviour:
     - {fileID: 1068259140}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 50
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -4520,7 +4520,7 @@ MonoBehaviour:
     - {fileID: 1095215442}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 10
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -7648,7 +7648,7 @@ MonoBehaviour:
     - {fileID: 1095215442}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 10
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -13351,7 +13351,7 @@ MonoBehaviour:
     - {fileID: 1095215442}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 10
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -15918,7 +15918,7 @@ MonoBehaviour:
     - {fileID: 168748418}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 50
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -21379,7 +21379,7 @@ Transform:
   m_GameObject: {fileID: 945226879}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 59.7, y: -21.970001, z: -42.2715}
+  m_LocalPosition: {x: 59.7, y: -22, z: -42.2715}
   m_LocalScale: {x: 11.010899, y: 0.37243, z: 1.3794729}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -33514,7 +33514,7 @@ MonoBehaviour:
     - {fileID: 168748418}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 50
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -38045,7 +38045,7 @@ MonoBehaviour:
     - {fileID: 1068259140}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 50
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -38634,7 +38634,7 @@ MonoBehaviour:
     - {fileID: 1068259140}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 50
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -39628,7 +39628,7 @@ MonoBehaviour:
     - {fileID: 1095215442}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 10
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -44394,7 +44394,7 @@ MonoBehaviour:
     - {fileID: 1095215442}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 10
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -45046,7 +45046,7 @@ MonoBehaviour:
     - {fileID: 1095215442}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 10
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
@@ -46193,7 +46193,7 @@ MonoBehaviour:
     - {fileID: 1068259140}
   startNodeIndex: 0
   restartFromStartWhenNoNext: 1
-  moveSpeed: 100
+  moveSpeed: 50
   rotateSpeed: 360
   arrivalDistance: 0.4
   startPatrollingOnEnable: 1
