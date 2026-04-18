@@ -3512,7 +3512,7 @@ GameObject:
   - component: {fileID: 206041127}
   m_Layer: 0
   m_Name: "\u30D1\u30C8\u30AB\u30FC (1)"
-  m_TagString: Untagged
+  m_TagString: Car
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -14704,7 +14704,7 @@ GameObject:
   - component: {fileID: 687463962}
   m_Layer: 0
   m_Name: "\u8ECA"
-  m_TagString: Untagged
+  m_TagString: Car
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -31381,7 +31381,7 @@ GameObject:
   - component: {fileID: 1568331957}
   m_Layer: 0
   m_Name: "\u8ECA (1)"
-  m_TagString: Untagged
+  m_TagString: Car
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -35662,7 +35662,7 @@ GameObject:
   - component: {fileID: 1794652392}
   m_Layer: 0
   m_Name: "\u8ECA (2)"
-  m_TagString: Untagged
+  m_TagString: Car
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -36241,7 +36241,7 @@ GameObject:
   - component: {fileID: 1826442265}
   m_Layer: 0
   m_Name: "\u30D1\u30C8\u30AB\u30FC"
-  m_TagString: Untagged
+  m_TagString: Car
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -42750,7 +42750,7 @@ GameObject:
   - component: {fileID: 2131613901}
   m_Layer: 0
   m_Name: "\u8ECA (3)"
-  m_TagString: Untagged
+  m_TagString: Car
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
