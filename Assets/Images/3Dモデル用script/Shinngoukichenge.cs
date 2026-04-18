@@ -19,7 +19,8 @@ public class Shinngoukichenge : MonoBehaviour
     [SerializeField] GameObject yellowModel;
     [SerializeField] GameObject walkred;
     [SerializeField] GameObject walkblue;
-
+    [SerializeField] GameObject walkred2;
+    [SerializeField] GameObject walkblue2;
     int state = 0;
     float timer = 0f;
    
@@ -54,6 +55,7 @@ public class Shinngoukichenge : MonoBehaviour
                 yellowModel.GetComponent<Renderer>().material = nomal;
                 redModel.GetComponent<Renderer>().material = red;
                 
+                
             state = 1;
             }
             else if(state == 1)
@@ -63,6 +65,9 @@ public class Shinngoukichenge : MonoBehaviour
 
                 walkred.GetComponent<Renderer>().material = nomal;
                 walkblue.GetComponent<Renderer>().material = blue;
+                
+                walkred2.GetComponent<Renderer>().material = nomal;
+                walkblue2.GetComponent<Renderer>().material = blue;
             state = 2;
             }
             else if(state == 2)
@@ -73,6 +78,11 @@ public class Shinngoukichenge : MonoBehaviour
 
                 walkblue.GetComponent<Renderer>().material = nomal;
                 walkred.GetComponent<Renderer>().material = red;
+
+                walkblue2.GetComponent<Renderer>().material = nomal;
+                walkred2.GetComponent<Renderer>().material = red;
+
+
             state = 0;
             }
             
