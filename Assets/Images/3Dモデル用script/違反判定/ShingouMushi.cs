@@ -5,37 +5,41 @@ using UnityEngine.SceneManagement;
 
 public class ShingouMushi : MonoBehaviour
 {
-
+    [Tooltip("Collider for mushi check. If empty, uses this GameObject.")]
     [SerializeField] GameObject MushiDecision;
+
+    [Tooltip("Traffic signal script. If this slot is None, use Shinngoukired Object below.")]
     [SerializeField] Shinngoukichenge shinngoukired;
-    // Start is called before the first frame update
 
-    private Collider decisionCollider;
+    [Tooltip("GameObject that has Shinngoukichenge (used when component ref above is None).")]
+    [SerializeField] GameObject shinngoukiredObject;
 
-    void Start()
+    Collider decisionCollider;
+
+    void Awake()
     {
-        decisionCollider = MushiDecision.GetComponent<Collider>();
-        //MushiDecision.SetActive(true);
+        if (MushiDecision == null)
+            MushiDecision = gameObject;
+
+        if (shinngoukired == null && shinngoukiredObject != null)
+            shinngoukired = shinngoukiredObject.GetComponent<Shinngoukichenge>();
+
+        if (MushiDecision != null)
+            decisionCollider = MushiDecision.GetComponent<Collider>();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if(shinngoukired.State == 1)
-        {
-            decisionCollider.enabled = false;
+        if (shinngoukired == null || decisionCollider == null)
+            return;
 
-        }
-        else 
-        {
-            decisionCollider.enabled = true;
-        }
+        decisionCollider.enabled = shinngoukired.State != 1;
     }
     public static float ClearTime = 0;
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Player")) // 例：触れたい相手にTag付ける
+        if (other.gameObject.CompareTag("Player")) // ??F?G?????????Tag?t????
         {
             
 
@@ -64,8 +68,8 @@ public class ShingouMushi : MonoBehaviour
 
     void ShowCursor()
     {
-        Cursor.visible = true; // カーソル表示
-        Cursor.lockState = CursorLockMode.None; // ロック解除
+        Cursor.visible = true; // ?J?[?\???\??
+        Cursor.lockState = CursorLockMode.None; // ???b?N????
     }
 
 
