@@ -22,15 +22,24 @@ public class Gemeover : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
+            ShowCursor();
             SceneManager.LoadScene("GameOverScene");
         }
         if (collision.gameObject.CompareTag("Car"))
         {
+            ShowCursor();
             SceneManager.LoadScene("DiedScene");
         }
         if (collision.gameObject.CompareTag("Walker"))
         {
+            ShowCursor();
             SceneManager.LoadScene("GameOverScene");
         }
+    }
+
+    void ShowCursor()
+    {
+        Cursor.visible = true; // カーソル表示
+        Cursor.lockState = CursorLockMode.None; // ロック解除
     }
 }
