@@ -7,6 +7,8 @@ TagManager:
   - Enemy
   - Car
   - Walker
+  - hodou
+  - douro
   layers:
   - Default
   - TransparentFX

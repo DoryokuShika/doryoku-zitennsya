@@ -62,6 +62,9 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
 
     void Update()
     {
+        if (MobTrafficPause.IsFrozen)
+            return;
+
         if (!patrolling || nodes == null || nodes.Length == 0)
             return;
 
@@ -232,6 +235,17 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
     public void StopPatrol()
     {
         StopPatrolInternal();
+    }
+
+    /// <summary>交通一時停止解除直後に呼ばれ、ナビの行き先を付け直します。</summary>
+    public void NotifyResumeFromTrafficPause()
+    {
+        if (!patrolling)
+            return;
+        if (currentTarget != null)
+            GoToTarget(currentTarget);
+        else
+            TryRestartFromStartOrStop();
     }
 
     void StopPatrolInternal()

@@ -1,71 +1,126 @@
-using System.Collections;
-using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class ShingouMushi : MonoBehaviour
 {
-
+    [Tooltip("Collider for mushi check. If empty, uses this GameObject.")]
     [SerializeField] GameObject MushiDecision;
+
+    [Tooltip("Traffic signal script. If this slot is None, use Shinngoukired Object below.")]
     [SerializeField] Shinngoukichenge shinngoukired;
-    // Start is called before the first frame update
 
-    private Collider decisionCollider;
+    [Tooltip("GameObject that has Shinngoukichenge (used when component ref above is None).")]
+    [SerializeField] GameObject shinngoukiredObject;
 
-    void Start()
+    [Header("????????????")]
+    [SerializeField] TMP_Text signalViolationCompleteTmp;
+    [SerializeField] Text signalViolationCompleteUi;
+    [SerializeField] string signalViolationCompleteLabel = "????";
+    [SerializeField] Color signalViolationCompleteTextColor = Color.red;
+
+    [Header("?????????????????????????????")]
+    [SerializeField] TMP_Text[] additionalTmpTurnRedOnComplete;
+    [SerializeField] Text[] additionalUiTurnRedOnComplete;
+
+    Collider decisionCollider;
+    bool _playerInsideMushiZone;
+
+    /// <summary>?????????????????????????????????</summary>
+    public bool IsActiveSignalViolationNow()
     {
-        decisionCollider = MushiDecision.GetComponent<Collider>();
-        //MushiDecision.SetActive(true);
+        if (shinngoukired == null || decisionCollider == null)
+            return false;
+        if (!_playerInsideMushiZone)
+            return false;
+        return shinngoukired.State != 1;
     }
 
-    // Update is called once per frame
+    void Awake()
+    {
+        if (MushiDecision == null)
+            MushiDecision = gameObject;
+
+        if (shinngoukired == null && shinngoukiredObject != null)
+            shinngoukired = shinngoukiredObject.GetComponent<Shinngoukichenge>();
+
+        if (MushiDecision != null)
+            decisionCollider = MushiDecision.GetComponent<Collider>();
+    }
+
     void Update()
     {
-        if(shinngoukired.State == 1)
-        {
-            decisionCollider.enabled = false;
+        if (shinngoukired == null || decisionCollider == null)
+            return;
 
-        }
-        else 
-        {
-            decisionCollider.enabled = true;
-        }
+        decisionCollider.enabled = shinngoukired.State != 1;
     }
     public static float ClearTime = 0;
 
+    void OnTriggerExit(Collider other)
+    {
+        if (!other.gameObject.CompareTag("Player"))
+            return;
+        _playerInsideMushiZone = false;
+    }
+
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Player")) // 例：触れたい相手にTag付ける
+        if (!other.gameObject.CompareTag("Player"))
+            return;
+
+        _playerInsideMushiZone = true;
+
+        if (ViolationTimes.isShingouMushi)
         {
-            
+            Timer.isRunning = false;
+            ShowCursor();
+            SceneManager.LoadScene("GameOverScene");
+            return;
+        }
 
-            if (ViolationTimes.isShingouMushi == true)
-            {
-                Timer.isRunning = false;
-                ShowCursor();
-                SceneManager.LoadScene("GameOverScene");
-            }
-            else
-            {
-                ViolationTimes.isShingouMushi = true;
-            }
+        ViolationTimes.isShingouMushi = true;
+        ApplySignalViolationCompleteText();
+        ViolationTimes.NotifySignalViolationComplete();
+        PlayerViolationState.NotifySignalViolationMoment(1f);
+    }
 
-            if (ViolationTimes.IsAllViolationsComplete())
-            {
-                Timer.isRunning = false;
-                ScoreManager.SaveBestTime(Timer.timer);
-                ClearTime = Timer.timer;
-                ShowCursor();
-                SceneManager.LoadScene("Clear");
-            }
+    void ApplySignalViolationCompleteText()
+    {
+        if (signalViolationCompleteTmp != null)
+        {
+            signalViolationCompleteTmp.text = signalViolationCompleteLabel;
+            signalViolationCompleteTmp.color = signalViolationCompleteTextColor;
+        }
+        if (signalViolationCompleteUi != null)
+        {
+            signalViolationCompleteUi.text = signalViolationCompleteLabel;
+            signalViolationCompleteUi.color = signalViolationCompleteTextColor;
+        }
 
+        if (additionalTmpTurnRedOnComplete != null)
+        {
+            foreach (var t in additionalTmpTurnRedOnComplete)
+            {
+                if (t != null)
+                    t.color = signalViolationCompleteTextColor;
+            }
+        }
+        if (additionalUiTurnRedOnComplete != null)
+        {
+            foreach (var t in additionalUiTurnRedOnComplete)
+            {
+                if (t != null)
+                    t.color = signalViolationCompleteTextColor;
+            }
         }
     }
 
     void ShowCursor()
     {
-        Cursor.visible = true; // カーソル表示
-        Cursor.lockState = CursorLockMode.None; // ロック解除
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
 
