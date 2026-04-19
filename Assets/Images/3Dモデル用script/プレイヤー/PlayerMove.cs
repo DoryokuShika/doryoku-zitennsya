@@ -49,6 +49,13 @@ public class PlayerMove : MonoBehaviour
 
     void Update()
     {
+        if (MobTrafficPause.IsFrozen)
+        {
+            currentForwardSpeed = 0f;
+            FullyStopRigidbody();
+            return;
+        }
+
         if (Time.frameCount > mouseIgnoreFramesAfterStart)
             MouseLook();
 
@@ -59,9 +66,32 @@ public class PlayerMove : MonoBehaviour
         }
     }
 
+    void LateUpdate()
+    {
+        if (MobTrafficPause.IsFrozen)
+            FullyStopRigidbody();
+    }
+
     void FixedUpdate()
     {
+        if (MobTrafficPause.IsFrozen)
+        {
+            currentForwardSpeed = 0f;
+            FullyStopRigidbody();
+            return;
+        }
+
         MoveForwardAndBrake();
+    }
+
+    void FullyStopRigidbody()
+    {
+        if (rb == null)
+            return;
+        if (rb.isKinematic)
+            return;
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
     }
 
     void MouseLook()

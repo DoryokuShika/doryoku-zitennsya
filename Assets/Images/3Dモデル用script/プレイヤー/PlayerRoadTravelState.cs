@@ -111,6 +111,9 @@ public class PlayerRoadTravelState : MonoBehaviour
 
     void Update()
     {
+        if (MobTrafficPause.IsFrozen)
+            return;
+
         RefreshTravelDirection();
         PickPrimaryRoadAndLane();
         MaybeDebugLogFacing();

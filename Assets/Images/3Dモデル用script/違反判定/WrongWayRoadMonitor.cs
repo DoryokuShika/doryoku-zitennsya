@@ -80,6 +80,10 @@ public class WrongWayRoadMonitor : MonoBehaviour
     [Tooltip("例: あと{0}秒 の {0} に切り上げ秒が入る")]
     [SerializeField] string countdownFormat = "あと{0}秒";
     [SerializeField] string countdownCompletedLabel = "完了";
+    [Tooltip("逆走カウントダウン中の文字色（残り○秒）")]
+    [SerializeField] Color countdownTextColorCounting = Color.black;
+    [Tooltip("逆走違反カウントが 0 になり完了したときの文字色")]
+    [SerializeField] Color countdownTextColorCompleted = Color.red;
     [Tooltip("逆走をやめても残り秒は維持（一時停止）。オンにすると逆走解除で秒数が満タンに戻る。")]
     [SerializeField] bool resetCountdownWhenWrongWayEnds;
 
@@ -87,6 +91,9 @@ public class WrongWayRoadMonitor : MonoBehaviour
     bool[] _wasWrong;
     float _remainingWrongWaySeconds;
     bool _countdownCompleted;
+
+    /// <summary>直近の LateUpdate で逆走条件を満たしているか（警察の警告文などに使う）。</summary>
+    public bool IsWrongWayActiveNow { get; private set; }
 
     void Awake()
     {
@@ -112,6 +119,8 @@ public class WrongWayRoadMonitor : MonoBehaviour
 
     void LateUpdate()
     {
+        IsWrongWayActiveNow = false;
+
         if (travelState == null || monitoredRoads == null || monitoredRoads.Count == 0)
         {
             ApplyGlowVisual(false, false);
@@ -174,6 +183,7 @@ public class WrongWayRoadMonitor : MonoBehaviour
                 ClearWrongState(i);
         }
 
+        IsWrongWayActiveNow = anyWrong;
         TickWrongWayCountdownUi(anyWrong);
     }
 
@@ -271,6 +281,7 @@ public class WrongWayRoadMonitor : MonoBehaviour
         {
             _remainingWrongWaySeconds = 0f;
             _countdownCompleted = true;
+            ViolationTimes.NotifyWrongWayViolationComplete();
             ApplyGlowVisual(false, true);
             SetCountdownDisplayText(countdownCompletedLabel);
             return;
@@ -305,10 +316,18 @@ public class WrongWayRoadMonitor : MonoBehaviour
 
     void SetCountdownDisplayText(string text)
     {
+        bool completed = _countdownCompleted;
+        Color c = completed ? countdownTextColorCompleted : countdownTextColorCounting;
         if (countdownTmpText != null)
+        {
             countdownTmpText.text = text;
+            countdownTmpText.color = c;
+        }
         if (countdownUiText != null)
+        {
             countdownUiText.text = text;
+            countdownUiText.color = c;
+        }
     }
 
     void UpdateCountdownTexts()
