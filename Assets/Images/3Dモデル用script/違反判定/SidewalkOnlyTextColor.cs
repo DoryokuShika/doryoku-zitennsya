@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 歩道（hodou）に触れている間だけ経過秒を蓄積し、一定秒数に達したら完了表示にします。
-/// 歩道を離れている間は秒は増えません。道路タグや別オブジェクトの条件は使いません。
+/// UI テキストのハイライト色は、歩道上かつ左手信号を出していないときだけ適用します。
 /// </summary>
 [DisallowMultipleComponent]
 public class SidewalkOnlyTextColor : MonoBehaviour
@@ -21,6 +21,10 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     [Header("Colors")]
     [SerializeField] Color colorWhenOnSidewalkNotOnRoad = new Color(1f, 0.35f, 0.35f, 1f);
     [SerializeField] Color colorOtherwise = Color.white;
+
+    [Header("左手信号")]
+    [Tooltip("未指定なら PlayerHandSignalState.Instance。歩道上でも左クリック（信号）中はハイライト色にしません。")]
+    [SerializeField] PlayerHandSignalState handSignalStateSource;
 
     [Header("歩道上での走行時間 → 秒表示（以前の回数表示用テキスト）")]
     [Tooltip("歩道に触れている間だけ加算される秒。ここに達すると完了表記に切り替わります")]
@@ -160,20 +164,29 @@ public class SidewalkOnlyTextColor : MonoBehaviour
             set.Remove(c);
     }
 
+    bool IsLeftHandSignalHeld()
+    {
+        var src = handSignalStateSource != null ? handSignalStateSource : PlayerHandSignalState.Instance;
+        return src != null && src.IsLeftHandSignalHeld;
+    }
+
     void ApplyColor(bool fromStartupRecount = false)
     {
         bool onSidewalk = _touchingSidewalk.Count > 0;
-        Color c = onSidewalk ? colorWhenOnSidewalkNotOnRoad : colorOtherwise;
+        bool highlight = onSidewalk && !IsLeftHandSignalHeld();
+        Color c = highlight ? colorWhenOnSidewalkNotOnRoad : colorOtherwise;
 
         if (debugLog)
         {
-            if (!_hasLastState || onSidewalk != _lastHighlightState)
+            if (!_hasLastState || highlight != _lastHighlightState)
             {
                 _hasLastState = true;
-                _lastHighlightState = onSidewalk;
-                string reason = onSidewalk
-                    ? "HIGHLIGHT (on sidewalk)"
-                    : $"normal (sidewalkCount={_touchingSidewalk.Count})";
+                _lastHighlightState = highlight;
+                string reason = highlight
+                    ? "HIGHLIGHT (on sidewalk, hand signal OFF)"
+                    : onSidewalk
+                        ? "normal (on sidewalk but hand signal ON)"
+                        : $"normal (sidewalkCount={_touchingSidewalk.Count})";
                 if (fromStartupRecount)
                     reason += " [after Start recount]";
                 Debug.Log($"{logPrefix} {reason}", this);

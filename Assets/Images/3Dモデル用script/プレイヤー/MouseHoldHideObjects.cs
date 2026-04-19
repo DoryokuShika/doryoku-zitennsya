@@ -1,26 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// Hold LMB: hides <see cref="hiddenWhileLeftHeld"/>.
-/// Hold RMB: hides <see cref="hiddenWhileRightHeld"/>.
-/// Release: each object becomes visible again (if the other button does not keep it hidden).
+/// マウス左ボタンを押している間だけ <see cref="hiddenWhileLeftHeld"/> を非表示にします（左手信号の見た目用）。
+/// 右クリックによる操作は行いません。
 /// </summary>
 public class MouseHoldHideObjects : MonoBehaviour
 {
     [SerializeField]
-    [Tooltip("Hidden while the left mouse button is held.")]
+    [Tooltip("左クリックを押している間非表示にするオブジェクト（信号モデルなど）")]
     GameObject hiddenWhileLeftHeld;
-
-    [SerializeField]
-    [Tooltip("Hidden while the right mouse button is held.")]
-    GameObject hiddenWhileRightHeld;
 
     void Update()
     {
         if (hiddenWhileLeftHeld != null)
             hiddenWhileLeftHeld.SetActive(!Input.GetMouseButton(0));
-
-        if (hiddenWhileRightHeld != null)
-            hiddenWhileRightHeld.SetActive(!Input.GetMouseButton(1));
     }
 }
