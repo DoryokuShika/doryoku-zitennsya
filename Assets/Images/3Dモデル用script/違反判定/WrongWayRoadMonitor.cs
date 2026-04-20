@@ -7,7 +7,9 @@ using UnityEngine.UI;
 /// <see cref="PlayerRoadTravelState"/> の方角・道路接触を使い、インスペクターで登録した道路ごとに逆走を判定します。
 /// よく使うのは「進行方角」だけ: その道路に触れている間、許可した上下左右以外に進んでいたら逆走。
 /// 「横位置」は車線の左右（道路中心から見たプラス／マイナス側）用。方角だけなら Ignore でよい。
+/// 警察視界は <see cref="PoliceLineOfSightState"/>（プローブ更新後）を参照します。
 /// </summary>
+[DefaultExecutionOrder(25)]
 [DisallowMultipleComponent]
 public class WrongWayRoadMonitor : MonoBehaviour
 {
@@ -47,7 +49,7 @@ public class WrongWayRoadMonitor : MonoBehaviour
     [SerializeField] List<RoadRule> monitoredRoads = new List<RoadRule>();
 
     [Header("判定")]
-    [Tooltip("これ未満の速度では判定しない（PlayerRoadTravelState に合わせる）")]
+    [Tooltip("これ未満の速度では逆走判定しない（PlayerRoadTravelState の minSpeedForDirection に合わせる例: 0.35）")]
     [SerializeField] float minSpeed = 0.35f;
 
     [Header("デバッグログ")]
@@ -87,13 +89,21 @@ public class WrongWayRoadMonitor : MonoBehaviour
     [Tooltip("逆走をやめても残り秒は維持（一時停止）。オンにすると逆走解除で秒数が満タンに戻る。")]
     [SerializeField] bool resetCountdownWhenWrongWayEnds;
 
+    [Header("警察警告")]
+    [Tooltip("オン: 逆走違反中かつ PoliceLineOfSightState で視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
+    [SerializeField] bool requestPoliceCatchWhenSpottedDuringWrongWay = true;
+
     Rigidbody _rb;
     bool[] _wasWrong;
     float _remainingWrongWaySeconds;
     bool _countdownCompleted;
+    bool _ruleViolationActiveSnapshot;
 
-    /// <summary>直近の LateUpdate で逆走条件を満たしているか（警察の警告文などに使う）。</summary>
-    public bool IsWrongWayActiveNow { get; private set; }
+    /// <summary>
+    /// UI が逆走ハイライトで点滅している間ずっと true（<see cref="ApplyGlowVisual"/> と同じ条件で同期）。
+    /// <see cref="PlayerViolationStateHub"/> / 警察視界用。
+    /// </summary>
+    public bool IsWrongWayRuleViolationActiveNow() => _ruleViolationActiveSnapshot;
 
     void Awake()
     {
@@ -119,8 +129,6 @@ public class WrongWayRoadMonitor : MonoBehaviour
 
     void LateUpdate()
     {
-        IsWrongWayActiveNow = false;
-
         if (travelState == null || monitoredRoads == null || monitoredRoads.Count == 0)
         {
             ApplyGlowVisual(false, false);
@@ -183,8 +191,12 @@ public class WrongWayRoadMonitor : MonoBehaviour
                 ClearWrongState(i);
         }
 
-        IsWrongWayActiveNow = anyWrong;
         TickWrongWayCountdownUi(anyWrong);
+
+        if (requestPoliceCatchWhenSpottedDuringWrongWay &&
+            IsWrongWayRuleViolationActiveNow() &&
+            PoliceLineOfSightState.IsTargetInPoliceSightNow)
+            PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.WrongWay);
     }
 
     static Vector3 FlatVelocityXZ(Vector3 v)
@@ -297,6 +309,8 @@ public class WrongWayRoadMonitor : MonoBehaviour
 
     void ApplyGlowVisual(bool wrongWayPulse, bool completed)
     {
+        _ruleViolationActiveSnapshot = wrongWayPulse && !completed;
+
         Color c;
         if (completed || !wrongWayPulse)
             c = glowColorNormal;

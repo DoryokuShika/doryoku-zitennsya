@@ -6,42 +6,51 @@ using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 /// <summary>
-/// 警察視点で対象が視野内なら「捕獲」。カメラは切り替えず、
-/// 警告用パネル（Canvas）を表示し、指定オブジェクト（通常は別 Canvas ルート）を一時非表示にします。
-/// 戻るボタンで非表示を巻き戻します。
+/// 警告 UI・一時停止などの実行部。視界の数値は <see cref="PoliceTargetLineOfSightProbe"/>、
+/// 視界の集約は <see cref="PoliceLineOfSightState"/>。
+/// 「違反中かつ視界内」は各違反スクリプトが照合して <see cref="RequestTryCatchWhenViolationVisibleToPolice"/> を呼びます。
+/// 「違反中のみ警告」がオフのときだけ、ここで視界のみの自動捕獲を行います。
 /// </summary>
 [DefaultExecutionOrder(20)]
 [DisallowMultipleComponent]
 public class PoliceLineOfSightCatch : MonoBehaviour
 {
+    static PoliceLineOfSightCatch _activeInstance;
+
     [Header("対象")]
-    [Tooltip("捕獲判定の対象（自転車＝プレイヤーなど）。コライダがあるとレイ判定が確実です。")]
+    [Tooltip("捕獲対象・Hub 付与先（自転車＝プレイヤーなど）。Probe の Target が空ならここから流し込みます。")]
     [SerializeField] Transform targetCharacter;
     [Tooltip("警告中に停止させる警察側のルート（パトカー親など）。未指定ならこのオブジェクト")]
     [SerializeField] Transform policeRootToFreeze;
 
-    [Header("視点（未指定ならこのオブジェクトの位置＋オフセット）")]
-    [SerializeField] Transform eyeTransform;
-    [SerializeField] Vector3 eyeLocalOffset = new Vector3(0f, 1.6f, 0f);
-
-    [Header("視野")]
-    [Tooltip("左右合わせた水平視野角（度）。例: 90")]
-    [SerializeField] float horizontalViewAngleDegrees = 90f;
-    [SerializeField] float maxViewDistance = 30f;
-    [Tooltip("遮蔽として扱うレイヤー（壁など）")]
-    [SerializeField] LayerMask obstacleLayers = ~0;
+    [Header("視界プローブ")]
+    [Tooltip("未指定なら同じ GameObject から取得／なければ追加します。視野角・レイはプローブ側で設定します。")]
+    [SerializeField] PoliceTargetLineOfSightProbe sightProbe;
 
     [Header("違反中のみ警告")]
-    [Tooltip("オン: PlayerViolationState.IsViolatingNow が true のときだけ捕獲（青切符）。オフ: 視界に入れば常に警告。")]
+    [Tooltip("オン: 逆走・歩道・信号の各スクリプトが「自違反 ∧ 視界内」を照合して依頼したときだけ警告。オフ: 下記の自動判定（視界のみ）。")]
     [SerializeField] bool requireViolationStateToCatch = true;
 
     [Header("警告パネル（見つかったとき表示）")]
     [Tooltip("捕獲中だけ表示するルート（パネル・テキスト・戻るボタンの親）")]
     [SerializeField] GameObject catchUiRoot;
+    [Tooltip("見つかったときの見出しなど（TMP）")]
     [SerializeField] TMP_Text violationMessageTmp;
+    [Tooltip("見つかったときの見出しなど（uGUI Text）")]
     [SerializeField] Text violationMessageUiText;
     [FormerlySerializedAs("violationMessage")]
     [SerializeField] string messageOnCaught = "見つかりました。";
+
+    [Header("違反内容テキスト（任意・未設定なら見出しに種別文を足す）")]
+    [Tooltip("何の違反かを書き込む TMP。空なら violationMessage に見出し＋改行＋種別文をまとめて入れます。")]
+    [SerializeField] TMP_Text violationKindDetailTmp;
+    [Tooltip("何の違反かを書き込む uGUI Text")]
+    [SerializeField] Text violationKindDetailUiText;
+    [SerializeField] string messageWrongWayCaught = "逆走がばれました。";
+    [SerializeField] string messageSidewalkCaught = "歩道走行がばれました。";
+    [SerializeField] string messageSignalCaught = "信号無視がばれました。";
+    [Tooltip("違反中のみ警告がオフで視界だけ捕獲したとき、または種別なしで依頼されたときの種別欄用")]
+    [SerializeField] string messageSightOnlyDetail = "";
     [FormerlySerializedAs("retryButton")]
     [SerializeField] Button backButton;
     [Tooltip("戻るボタンを大きくします（uGUI）")]
@@ -96,6 +105,28 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     bool _backLayoutCached;
     GUIStyle _fallbackBackStyle;
 
+    /// <summary>
+    /// 逆走・歩道・信号などが「自違反かつ警察視界内」と判断したときに呼ぶ。シーンに1つのアクティブな Catch が反応します。
+    /// </summary>
+    public static void RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind violationKind)
+    {
+        if (_activeInstance == null)
+            return;
+        _activeInstance.TryCatchWhenViolationVisibleToPoliceInternal(violationKind);
+    }
+
+    void OnEnable()
+    {
+        if (_activeInstance == null)
+            _activeInstance = this;
+    }
+
+    void OnDisable()
+    {
+        if (_activeInstance == this)
+            _activeInstance = null;
+    }
+
     void Awake()
     {
         if (Application.isPlaying && autoWirePlayerInPlayMode && targetCharacter == null)
@@ -107,6 +138,12 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         if (policeRootToFreeze == null)
             policeRootToFreeze = transform;
+
+        if (sightProbe == null)
+            sightProbe = GetComponent<PoliceTargetLineOfSightProbe>();
+        if (sightProbe == null)
+            sightProbe = gameObject.AddComponent<PoliceTargetLineOfSightProbe>();
+        sightProbe.SetTargetCharacterIfUnset(targetCharacter);
 
         if (Application.isPlaying && autoWirePlayerInPlayMode && targetCharacter != null &&
             targetCharacter.GetComponent<PlayerViolationStateHub>() == null)
@@ -129,19 +166,35 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
     void LateUpdate()
     {
+        PoliceLineOfSightState.ClearSightIfNoProbeUpdatedThisFrame();
+
+        if (requireViolationStateToCatch)
+            return;
+
         if (Time.unscaledTime < _sightResumeUnscaledTime)
             return;
 
         if (_caught || targetCharacter == null)
             return;
 
-        if (!IsTargetInSight())
+        if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
             return;
 
-        if (requireViolationStateToCatch && !PlayerViolationState.IsViolatingNow)
+        Catch(PoliceCatchViolationKind.None);
+    }
+
+    void TryCatchWhenViolationVisibleToPoliceInternal(PoliceCatchViolationKind violationKind)
+    {
+        if (Time.unscaledTime < _sightResumeUnscaledTime)
             return;
 
-        Catch();
+        if (_caught || targetCharacter == null)
+            return;
+
+        if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
+            return;
+
+        Catch(violationKind);
     }
 
     void OnGUI()
@@ -166,57 +219,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             OnBackPressed();
     }
 
-    public bool IsTargetInSight()
-    {
-        if (targetCharacter == null)
-            return false;
-
-        Vector3 origin = GetEyeWorldPosition();
-        Vector3 targetPoint = GetTargetSamplePoint(targetCharacter);
-        Vector3 toTarget = targetPoint - origin;
-        float dist = toTarget.magnitude;
-        if (dist < 0.01f || dist > maxViewDistance)
-            return false;
-
-        Vector3 forward = transform.forward;
-        float halfAngle = Mathf.Clamp(horizontalViewAngleDegrees * 0.5f, 0.1f, 179f);
-        if (Vector3.Angle(forward, toTarget) > halfAngle)
-            return false;
-
-        Vector3 dir = toTarget / dist;
-        if (Physics.Raycast(origin, dir, out RaycastHit hit, dist, obstacleLayers, QueryTriggerInteraction.Ignore))
-            return IsTransformPartOfTarget(hit.transform, targetCharacter);
-
-        return true;
-    }
-
-    static bool IsTransformPartOfTarget(Transform t, Transform targetRoot)
-    {
-        if (t == null || targetRoot == null)
-            return false;
-        return t == targetRoot || t.IsChildOf(targetRoot);
-    }
-
-    Vector3 GetEyeWorldPosition()
-    {
-        if (eyeTransform != null)
-            return eyeTransform.position;
-        return transform.TransformPoint(eyeLocalOffset);
-    }
-
-    static Vector3 GetTargetSamplePoint(Transform target)
-    {
-        if (target == null)
-            return Vector3.zero;
-
-        var col = target.GetComponentInChildren<Collider>();
-        if (col != null)
-            return col.bounds.center;
-
-        return target.position;
-    }
-
-    void Catch()
+    void Catch(PoliceCatchViolationKind violationKind)
     {
         if (_caught)
             return;
@@ -237,7 +240,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
         }
 
-        ApplyMessageToUi();
+        ApplyMessageToUi(violationKind);
         ApplyHideWhileWarning();
         StyleBackButtonForCatch();
 
@@ -270,12 +273,43 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         }
     }
 
-    void ApplyMessageToUi()
+    void ApplyMessageToUi(PoliceCatchViolationKind violationKind)
     {
-        if (violationMessageTmp != null)
-            violationMessageTmp.text = messageOnCaught;
-        if (violationMessageUiText != null)
-            violationMessageUiText.text = messageOnCaught;
+        string detail = GetDetailMessageForKind(violationKind);
+        bool hasDetailSlot = violationKindDetailTmp != null || violationKindDetailUiText != null;
+
+        if (hasDetailSlot)
+        {
+            if (violationMessageTmp != null)
+                violationMessageTmp.text = messageOnCaught;
+            if (violationMessageUiText != null)
+                violationMessageUiText.text = messageOnCaught;
+            if (violationKindDetailTmp != null)
+                violationKindDetailTmp.text = detail;
+            if (violationKindDetailUiText != null)
+                violationKindDetailUiText.text = detail;
+        }
+        else
+        {
+            string combined = string.IsNullOrEmpty(detail)
+                ? messageOnCaught
+                : $"{messageOnCaught}\n{detail}";
+            if (violationMessageTmp != null)
+                violationMessageTmp.text = combined;
+            if (violationMessageUiText != null)
+                violationMessageUiText.text = combined;
+        }
+    }
+
+    string GetDetailMessageForKind(PoliceCatchViolationKind kind)
+    {
+        return kind switch
+        {
+            PoliceCatchViolationKind.WrongWay => messageWrongWayCaught,
+            PoliceCatchViolationKind.Sidewalk => messageSidewalkCaught,
+            PoliceCatchViolationKind.Signal => messageSignalCaught,
+            _ => messageSightOnlyDetail,
+        };
     }
 
     void CacheBackButtonLayout()
@@ -407,17 +441,4 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} 戻る: 警告終了", this);
     }
-
-#if UNITY_EDITOR
-    void OnDrawGizmosSelected()
-    {
-        Vector3 origin = eyeTransform != null ? eyeTransform.position : transform.TransformPoint(eyeLocalOffset);
-        float half = Mathf.Clamp(horizontalViewAngleDegrees * 0.5f, 1f, 89f);
-        Vector3 f = transform.forward * maxViewDistance;
-        Gizmos.color = new Color(1f, 0.35f, 0.35f, 0.9f);
-        Gizmos.DrawRay(origin, f);
-        Gizmos.DrawRay(origin, Quaternion.AngleAxis(-half, transform.up) * f);
-        Gizmos.DrawRay(origin, Quaternion.AngleAxis(half, transform.up) * f);
-    }
-#endif
 }

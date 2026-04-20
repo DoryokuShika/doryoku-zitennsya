@@ -3,6 +3,11 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// ???????? <see cref="PlayerViolationState.NotifySignalViolationMoment"/> ????
+/// ??????? <see cref="PoliceLineOfSightCatch"/> ??????????
+/// </summary>
+[DefaultExecutionOrder(25)]
 public class ShingouMushi : MonoBehaviour
 {
     [Tooltip("Collider for mushi check. If empty, uses this GameObject.")]
@@ -23,6 +28,10 @@ public class ShingouMushi : MonoBehaviour
     [Header("?????????????????????????????")]
     [SerializeField] TMP_Text[] additionalTmpTurnRedOnComplete;
     [SerializeField] Text[] additionalUiTurnRedOnComplete;
+
+    [Header("????")]
+    [Tooltip("??: ?????????????????PoliceLineOfSightCatch ??????????")]
+    [SerializeField] bool requestPoliceCatchWhenSpottedDuringSignalPulse = true;
 
     Collider decisionCollider;
     bool _playerInsideMushiZone;
@@ -84,6 +93,17 @@ public class ShingouMushi : MonoBehaviour
         ApplySignalViolationCompleteText();
         ViolationTimes.NotifySignalViolationComplete();
         PlayerViolationState.NotifySignalViolationMoment(1f);
+    }
+
+    void LateUpdate()
+    {
+        if (!requestPoliceCatchWhenSpottedDuringSignalPulse)
+            return;
+        if (!PlayerViolationState.IsSignalViolationPulseActive)
+            return;
+        if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
+            return;
+        PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.Signal);
     }
 
     void ApplySignalViolationCompleteText()

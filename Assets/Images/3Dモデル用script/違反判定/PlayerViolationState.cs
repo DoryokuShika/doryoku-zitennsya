@@ -11,7 +11,7 @@ public static class PlayerViolationState
     /// <summary>逆走・歩道・信号パルスのいずれかで true。</summary>
     public static bool IsViolatingNow { get; private set; }
 
-    /// <summary>直近の Rebuild で参照した逆走フラグ（デバッグ・他スクリプト用）。</summary>
+    /// <summary>直近の Rebuild で参照した逆走フラグ（<see cref="WrongWayRoadMonitor.IsWrongWayRuleViolationActiveNow"/> と同じ）。</summary>
     public static bool IsWrongWayViolating { get; private set; }
 
     /// <summary>直近の Rebuild で参照した歩道フラグ。</summary>

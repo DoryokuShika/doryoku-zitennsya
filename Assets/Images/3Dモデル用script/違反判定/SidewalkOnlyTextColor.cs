@@ -6,7 +6,9 @@ using UnityEngine.UI;
 /// <summary>
 /// 歩道（hodou）に触れている間だけ経過秒を蓄積し、一定秒数に達したら完了表示にします。
 /// UI テキストのハイライト色は、歩道上かつ左手信号を出していないときだけ適用します。
+/// 警察視界は <see cref="PoliceLineOfSightState"/>（プローブ更新後）を参照します。
 /// </summary>
+[DefaultExecutionOrder(25)]
 [DisallowMultipleComponent]
 public class SidewalkOnlyTextColor : MonoBehaviour
 {
@@ -58,6 +60,10 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     [SerializeField] bool debugLog;
     [SerializeField] string logPrefix = "[SidewalkOnlyTextColor]";
 
+    [Header("警察警告")]
+    [Tooltip("オン: 歩道違反中かつ PoliceLineOfSightState で視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
+    [SerializeField] bool requestPoliceCatchWhenSpottedDuringSidewalkViolation = true;
+
     bool _lastHighlightState;
     bool _hasLastState;
     bool _runCompleted;
@@ -105,6 +111,11 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         TickSidewalkTimer();
         ApplyColor();
         ApplySidewalkBlinkTargets();
+
+        if (requestPoliceCatchWhenSpottedDuringSidewalkViolation &&
+            IsSidewalkRuleViolationActiveNow() &&
+            PoliceLineOfSightState.IsTargetInPoliceSightNow)
+            PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.Sidewalk);
     }
 
     void TickSidewalkTimer()
