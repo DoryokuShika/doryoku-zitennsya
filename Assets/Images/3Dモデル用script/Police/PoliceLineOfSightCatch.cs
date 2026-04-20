@@ -51,6 +51,16 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [SerializeField] string messageSignalCaught = "信号無視がばれました。";
     [Tooltip("違反中のみ警告がオフで視界だけ捕獲したとき、または種別なしで依頼されたときの種別欄用")]
     [SerializeField] string messageSightOnlyDetail = "";
+    [Header("表示の再適用（テキストが切り替わらないとき）")]
+    [Tooltip("catchUiRoot を有効化し onCaught の後にもう一度見出し・違反内容を書きます。子の OnEnable や他イベントで上書きされる場合に。")]
+    [SerializeField] bool reapplyViolationMessagesAfterCatchUiShown = true;
+    [Tooltip("上と同じタイミングで反則金テキストも書き直します。罰金額用 Text をここにも割り当てると確実です。")]
+    [SerializeField] bool reapplyFineAmountAfterCatchUiShown = true;
+    [SerializeField] string catchFineAmountText = "6000円";
+    [SerializeField] TMP_Text catchFineAmountTmp;
+    [SerializeField] Text catchFineAmountUi;
+    [SerializeField] TMP_Text[] catchAdditionalFineTmp;
+    [SerializeField] Text[] catchAdditionalFineUi;
     [FormerlySerializedAs("retryButton")]
     [SerializeField] Button backButton;
     [Tooltip("戻るボタンを大きくします（uGUI）")]
@@ -250,6 +260,18 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             catchUiRoot.SetActive(true);
 
         onCaught?.Invoke();
+
+        if (reapplyViolationMessagesAfterCatchUiShown)
+            ApplyMessageToUi(violationKind);
+        if (reapplyFineAmountAfterCatchUiShown)
+        {
+            ViolationFineAmountDisplay.SetFineText(
+                catchFineAmountText,
+                catchFineAmountTmp,
+                catchFineAmountUi,
+                catchAdditionalFineTmp,
+                catchAdditionalFineUi);
+        }
 
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} Catch: 警告 UI 表示、hide 数={_hiddenWhileWarningSnaps.Count}", this);

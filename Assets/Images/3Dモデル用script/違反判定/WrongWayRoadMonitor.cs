@@ -93,6 +93,13 @@ public class WrongWayRoadMonitor : MonoBehaviour
     [Tooltip("オン: 逆走違反中かつ PoliceLineOfSightState で視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
     [SerializeField] bool requestPoliceCatchWhenSpottedDuringWrongWay = true;
 
+    [Header("反則金表示（逆走違反カウント完了時）")]
+    [SerializeField] string fineAmountText = "6000円";
+    [SerializeField] TMP_Text fineAmountDisplayTmp;
+    [SerializeField] Text fineAmountDisplayUi;
+    [SerializeField] TMP_Text[] additionalFineAmountTmp;
+    [SerializeField] Text[] additionalFineAmountUi;
+
     Rigidbody _rb;
     bool[] _wasWrong;
     float _remainingWrongWaySeconds;
@@ -196,7 +203,15 @@ public class WrongWayRoadMonitor : MonoBehaviour
         if (requestPoliceCatchWhenSpottedDuringWrongWay &&
             IsWrongWayRuleViolationActiveNow() &&
             PoliceLineOfSightState.IsTargetInPoliceSightNow)
+        {
+            ViolationFineAmountDisplay.SetFineText(
+                fineAmountText,
+                fineAmountDisplayTmp,
+                fineAmountDisplayUi,
+                additionalFineAmountTmp,
+                additionalFineAmountUi);
             PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.WrongWay);
+        }
     }
 
     static Vector3 FlatVelocityXZ(Vector3 v)
@@ -294,6 +309,12 @@ public class WrongWayRoadMonitor : MonoBehaviour
             _remainingWrongWaySeconds = 0f;
             _countdownCompleted = true;
             ViolationTimes.NotifyWrongWayViolationComplete();
+            ViolationFineAmountDisplay.SetFineText(
+                fineAmountText,
+                fineAmountDisplayTmp,
+                fineAmountDisplayUi,
+                additionalFineAmountTmp,
+                additionalFineAmountUi);
             ApplyGlowVisual(false, true);
             SetCountdownDisplayText(countdownCompletedLabel);
             return;

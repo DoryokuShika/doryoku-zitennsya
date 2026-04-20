@@ -33,6 +33,13 @@ public class ShingouMushi : MonoBehaviour
     [Tooltip("??: ?????????????????PoliceLineOfSightCatch ??????????")]
     [SerializeField] bool requestPoliceCatchWhenSpottedDuringSignalPulse = true;
 
+    [Header("????????????????")]
+    [SerializeField] string fineAmountText = "6000?";
+    [SerializeField] TMP_Text fineAmountDisplayTmp;
+    [SerializeField] Text fineAmountDisplayUi;
+    [SerializeField] TMP_Text[] additionalFineAmountTmp;
+    [SerializeField] Text[] additionalFineAmountUi;
+
     Collider decisionCollider;
     bool _playerInsideMushiZone;
 
@@ -93,6 +100,12 @@ public class ShingouMushi : MonoBehaviour
         ApplySignalViolationCompleteText();
         ViolationTimes.NotifySignalViolationComplete();
         PlayerViolationState.NotifySignalViolationMoment(1f);
+        ViolationFineAmountDisplay.SetFineText(
+            fineAmountText,
+            fineAmountDisplayTmp,
+            fineAmountDisplayUi,
+            additionalFineAmountTmp,
+            additionalFineAmountUi);
     }
 
     void LateUpdate()
@@ -103,6 +116,12 @@ public class ShingouMushi : MonoBehaviour
             return;
         if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
             return;
+        ViolationFineAmountDisplay.SetFineText(
+            fineAmountText,
+            fineAmountDisplayTmp,
+            fineAmountDisplayUi,
+            additionalFineAmountTmp,
+            additionalFineAmountUi);
         PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.Signal);
     }
 

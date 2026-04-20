@@ -64,6 +64,13 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     [Tooltip("オン: 歩道違反中かつ PoliceLineOfSightState で視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
     [SerializeField] bool requestPoliceCatchWhenSpottedDuringSidewalkViolation = true;
 
+    [Header("反則金表示（歩道走行違反完了時）")]
+    [SerializeField] string fineAmountText = "6000円";
+    [SerializeField] TMP_Text fineAmountDisplayTmp;
+    [SerializeField] Text fineAmountDisplayUi;
+    [SerializeField] TMP_Text[] additionalFineAmountTmp;
+    [SerializeField] Text[] additionalFineAmountUi;
+
     bool _lastHighlightState;
     bool _hasLastState;
     bool _runCompleted;
@@ -115,7 +122,15 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         if (requestPoliceCatchWhenSpottedDuringSidewalkViolation &&
             IsSidewalkRuleViolationActiveNow() &&
             PoliceLineOfSightState.IsTargetInPoliceSightNow)
+        {
+            ViolationFineAmountDisplay.SetFineText(
+                fineAmountText,
+                fineAmountDisplayTmp,
+                fineAmountDisplayUi,
+                additionalFineAmountTmp,
+                additionalFineAmountUi);
             PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.Sidewalk);
+        }
     }
 
     void TickSidewalkTimer()
@@ -133,6 +148,12 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         {
             _runCompleted = true;
             ViolationTimes.NotifySidewalkViolationComplete();
+            ViolationFineAmountDisplay.SetFineText(
+                fineAmountText,
+                fineAmountDisplayTmp,
+                fineAmountDisplayUi,
+                additionalFineAmountTmp,
+                additionalFineAmountUi);
             if (debugLog)
                 LogDbg($"Completed: {targetSidewalkSeconds}s on sidewalk (accumulated).");
         }
