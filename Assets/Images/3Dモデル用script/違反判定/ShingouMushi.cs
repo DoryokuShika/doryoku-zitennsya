@@ -1,11 +1,10 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// ???????? <see cref="PlayerViolationState.NotifySignalViolationMoment"/> ????
-/// ??????? <see cref="PoliceLineOfSightCatch"/> ??????????
+/// ?????????????????????????????????????
+/// ????????????????????????????????????????????
 /// </summary>
 [DefaultExecutionOrder(25)]
 public class ShingouMushi : MonoBehaviour
@@ -19,31 +18,42 @@ public class ShingouMushi : MonoBehaviour
     [Tooltip("GameObject that has Shinngoukichenge (used when component ref above is None).")]
     [SerializeField] GameObject shinngoukiredObject;
 
-    [Header("????????????")]
+    [Header("????????????????")]
     [SerializeField] TMP_Text signalViolationCompleteTmp;
     [SerializeField] Text signalViolationCompleteUi;
-    [SerializeField] string signalViolationCompleteLabel = "????";
+    [SerializeField] string signalViolationCompleteLabel = "??";
     [SerializeField] Color signalViolationCompleteTextColor = Color.red;
 
-    [Header("?????????????????????????????")]
     [SerializeField] TMP_Text[] additionalTmpTurnRedOnComplete;
     [SerializeField] Text[] additionalUiTurnRedOnComplete;
 
-    [Header("????")]
-    [Tooltip("??: ?????????????????PoliceLineOfSightCatch ??????????")]
-    [SerializeField] bool requestPoliceCatchWhenSpottedDuringSignalPulse = true;
-
-    [Header("????????????????")]
+    [Header("?????????????????")]
     [SerializeField] string fineAmountText = "6000?";
     [SerializeField] TMP_Text fineAmountDisplayTmp;
     [SerializeField] Text fineAmountDisplayUi;
     [SerializeField] TMP_Text[] additionalFineAmountTmp;
     [SerializeField] Text[] additionalFineAmountUi;
 
+    [Header("??????????????")]
+    [Tooltip("???????????????????????????? TMP")]
+    [SerializeField] TMP_Text completedWhenNotSpottedTmp;
+    [Tooltip("???????????????????????????? uGUI Text")]
+    [SerializeField] Text completedWhenNotSpottedUi;
+    [SerializeField] string completedWhenNotSpottedLabel = "??";
+    [SerializeField] Color completedWhenNotSpottedTextColor = Color.white;
+
+    [SerializeField] TMP_Text[] additionalTmpOnNotSpottedComplete;
+    [SerializeField] Text[] additionalUiOnNotSpottedComplete;
+    [SerializeField] Color additionalNotSpottedTextColor = Color.white;
+
+    [Header("??????????????")]
+    [Tooltip("???????????????????????????? UI ?????????")]
+    [SerializeField] bool showCatchUiWhenPoliceSeePlayerOnMushiComplete = true;
+
     Collider decisionCollider;
     bool _playerInsideMushiZone;
+    bool _pendingResolutionAfterEnter;
 
-    /// <summary>?????????????????????????????????</summary>
     public bool IsActiveSignalViolationNow()
     {
         if (shinngoukired == null || decisionCollider == null)
@@ -72,6 +82,7 @@ public class ShingouMushi : MonoBehaviour
 
         decisionCollider.enabled = shinngoukired.State != 1;
     }
+
     public static float ClearTime = 0;
 
     void OnTriggerExit(Collider other)
@@ -88,54 +99,71 @@ public class ShingouMushi : MonoBehaviour
 
         _playerInsideMushiZone = true;
 
-        if (ViolationTimes.isShingouMushi)
-        {
-            Timer.isRunning = false;
-            ShowCursor();
-            SceneManager.LoadScene("GameOverScene");
+        if (ViolationTimes.SignalViolationComplete)
             return;
-        }
 
-        ViolationTimes.isShingouMushi = true;
-        ApplySignalViolationCompleteText();
-        ViolationTimes.NotifySignalViolationComplete();
-        PlayerViolationState.NotifySignalViolationMoment(1f);
-        ViolationFineAmountDisplay.SetFineText(
-            fineAmountText,
-            fineAmountDisplayTmp,
-            fineAmountDisplayUi,
-            additionalFineAmountTmp,
-            additionalFineAmountUi);
+        _pendingResolutionAfterEnter = true;
     }
 
     void LateUpdate()
     {
-        if (!requestPoliceCatchWhenSpottedDuringSignalPulse)
+        if (!_pendingResolutionAfterEnter)
             return;
-        if (!PlayerViolationState.IsSignalViolationPulseActive)
+
+        if (!_playerInsideMushiZone)
+        {
+            _pendingResolutionAfterEnter = false;
             return;
-        if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
+        }
+
+        if (ViolationTimes.SignalViolationComplete)
+        {
+            _pendingResolutionAfterEnter = false;
             return;
-        ViolationFineAmountDisplay.SetFineText(
-            fineAmountText,
-            fineAmountDisplayTmp,
-            fineAmountDisplayUi,
-            additionalFineAmountTmp,
-            additionalFineAmountUi);
-        PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.Signal);
+        }
+
+        _pendingResolutionAfterEnter = false;
+
+        bool policeSeesPlayerOnMushiFrame = PoliceLineOfSightState.IsTargetInPoliceSightNow;
+
+        ViolationTimes.NotifySignalViolationComplete();
+        ApplyCompletedVisualsAfterMushi();
+
+        if (showCatchUiWhenPoliceSeePlayerOnMushiComplete && policeSeesPlayerOnMushiFrame)
+        {
+            ViolationFineAmountDisplay.SetFineText(
+                fineAmountText,
+                fineAmountDisplayTmp,
+                fineAmountDisplayUi,
+                additionalFineAmountTmp,
+                additionalFineAmountUi);
+            PlayerViolationState.NotifySignalViolationMoment(1f);
+            PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.Signal);
+        }
     }
 
-    void ApplySignalViolationCompleteText()
+    void ApplyCompletedVisualsAfterMushi()
     {
+        if (completedWhenNotSpottedTmp != null)
+        {
+            completedWhenNotSpottedTmp.text = completedWhenNotSpottedLabel;
+            completedWhenNotSpottedTmp.color = completedWhenNotSpottedTextColor;
+        }
+        if (completedWhenNotSpottedUi != null)
+        {
+            completedWhenNotSpottedUi.text = completedWhenNotSpottedLabel;
+            completedWhenNotSpottedUi.color = completedWhenNotSpottedTextColor;
+        }
+
         if (signalViolationCompleteTmp != null)
         {
-            signalViolationCompleteTmp.text = signalViolationCompleteLabel;
-            signalViolationCompleteTmp.color = signalViolationCompleteTextColor;
+            signalViolationCompleteTmp.text = completedWhenNotSpottedLabel;
+            signalViolationCompleteTmp.color = completedWhenNotSpottedTextColor;
         }
         if (signalViolationCompleteUi != null)
         {
-            signalViolationCompleteUi.text = signalViolationCompleteLabel;
-            signalViolationCompleteUi.color = signalViolationCompleteTextColor;
+            signalViolationCompleteUi.text = completedWhenNotSpottedLabel;
+            signalViolationCompleteUi.color = completedWhenNotSpottedTextColor;
         }
 
         if (additionalTmpTurnRedOnComplete != null)
@@ -143,7 +171,10 @@ public class ShingouMushi : MonoBehaviour
             foreach (var t in additionalTmpTurnRedOnComplete)
             {
                 if (t != null)
-                    t.color = signalViolationCompleteTextColor;
+                {
+                    t.text = completedWhenNotSpottedLabel;
+                    t.color = completedWhenNotSpottedTextColor;
+                }
             }
         }
         if (additionalUiTurnRedOnComplete != null)
@@ -151,16 +182,34 @@ public class ShingouMushi : MonoBehaviour
             foreach (var t in additionalUiTurnRedOnComplete)
             {
                 if (t != null)
-                    t.color = signalViolationCompleteTextColor;
+                {
+                    t.text = completedWhenNotSpottedLabel;
+                    t.color = completedWhenNotSpottedTextColor;
+                }
+            }
+        }
+
+        if (additionalTmpOnNotSpottedComplete != null)
+        {
+            foreach (var t in additionalTmpOnNotSpottedComplete)
+            {
+                if (t != null)
+                {
+                    t.text = completedWhenNotSpottedLabel;
+                    t.color = additionalNotSpottedTextColor;
+                }
+            }
+        }
+        if (additionalUiOnNotSpottedComplete != null)
+        {
+            foreach (var t in additionalUiOnNotSpottedComplete)
+            {
+                if (t != null)
+                {
+                    t.text = completedWhenNotSpottedLabel;
+                    t.color = additionalNotSpottedTextColor;
+                }
             }
         }
     }
-
-    void ShowCursor()
-    {
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-    }
-
-
 }

@@ -343,15 +343,59 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (rt != null)
             _backButtonSizeDeltaOrig = rt.sizeDelta;
 
-        var tmp = backButton.GetComponentInChildren<TMP_Text>(true);
-        if (tmp != null)
-            _backTmpFontOrig = tmp.fontSize;
+        foreach (var tmp in backButton.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (tmp != null && !IsCatchPanelDedicatedTmp(tmp))
+            {
+                _backTmpFontOrig = tmp.fontSize;
+                break;
+            }
+        }
 
-        var ui = backButton.GetComponentInChildren<Text>(true);
-        if (ui != null)
-            _backUiFontOrig = ui.fontSize;
+        foreach (var ui in backButton.GetComponentsInChildren<Text>(true))
+        {
+            if (ui != null && !IsCatchPanelDedicatedUiText(ui))
+            {
+                _backUiFontOrig = ui.fontSize;
+                break;
+            }
+        }
 
         _backLayoutCached = true;
+    }
+
+    bool IsCatchPanelDedicatedTmp(TMP_Text t)
+    {
+        if (t == null)
+            return false;
+        if (t == violationMessageTmp || t == violationKindDetailTmp || t == catchFineAmountTmp)
+            return true;
+        if (catchAdditionalFineTmp != null)
+        {
+            for (int i = 0; i < catchAdditionalFineTmp.Length; i++)
+            {
+                if (catchAdditionalFineTmp[i] == t)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    bool IsCatchPanelDedicatedUiText(Text t)
+    {
+        if (t == null)
+            return false;
+        if (t == violationMessageUiText || t == violationKindDetailUiText || t == catchFineAmountUi)
+            return true;
+        if (catchAdditionalFineUi != null)
+        {
+            for (int i = 0; i < catchAdditionalFineUi.Length; i++)
+            {
+                if (catchAdditionalFineUi[i] == t)
+                    return true;
+            }
+        }
+        return false;
     }
 
     void StyleBackButtonForCatch()
@@ -371,13 +415,13 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         foreach (var tmp in backButton.GetComponentsInChildren<TMP_Text>(true))
         {
-            if (tmp != null)
+            if (tmp != null && !IsCatchPanelDedicatedTmp(tmp))
                 tmp.fontSize = backButtonFontSizeTmp;
         }
 
         foreach (var ui in backButton.GetComponentsInChildren<Text>(true))
         {
-            if (ui != null)
+            if (ui != null && !IsCatchPanelDedicatedUiText(ui))
                 ui.fontSize = Mathf.RoundToInt(backButtonFontSizeUi);
         }
     }
@@ -393,13 +437,13 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         foreach (var tmp in backButton.GetComponentsInChildren<TMP_Text>(true))
         {
-            if (tmp != null && _backTmpFontOrig > 0f)
+            if (tmp != null && _backTmpFontOrig > 0f && !IsCatchPanelDedicatedTmp(tmp))
                 tmp.fontSize = _backTmpFontOrig;
         }
 
         foreach (var ui in backButton.GetComponentsInChildren<Text>(true))
         {
-            if (ui != null && _backUiFontOrig > 0f)
+            if (ui != null && _backUiFontOrig > 0f && !IsCatchPanelDedicatedUiText(ui))
                 ui.fontSize = Mathf.RoundToInt(_backUiFontOrig);
         }
     }

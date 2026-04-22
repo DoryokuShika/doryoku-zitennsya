@@ -2,13 +2,10 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 歩道走行・逆走・信号無視の「違反完了」フラグを集約し、三つそろったときだけクリアシーンへ遷移します。
+/// ???????s?E?t???E?M????????u???????v?t???O???W??A?O????????????????N???A?V?[????J???????B
 /// </summary>
 public class ViolationTimes : MonoBehaviour
 {
-    /// <summary>信号違反ゾーンに一度入ったあと（二度目の進入でゲームオーバー）。</summary>
-    public static bool isShingouMushi = false;
-
     public static bool SidewalkViolationComplete { get; private set; }
     public static bool WrongWayViolationComplete { get; private set; }
     public static bool SignalViolationComplete { get; private set; }
@@ -58,7 +55,6 @@ public class ViolationTimes : MonoBehaviour
 
     public static void ResetAll()
     {
-        isShingouMushi = false;
         SidewalkViolationComplete = false;
         WrongWayViolationComplete = false;
         SignalViolationComplete = false;
