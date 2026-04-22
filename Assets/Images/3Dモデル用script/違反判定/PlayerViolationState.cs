@@ -7,6 +7,7 @@ using UnityEngine;
 public static class PlayerViolationState
 {
     static float _signalPulseUntilUnscaled = float.NegativeInfinity;
+    static bool _ongoingSignalMushi;
 
     /// <summary>逆走・歩道・信号パルスのいずれかで true。</summary>
     public static bool IsViolatingNow { get; private set; }
@@ -31,6 +32,17 @@ public static class PlayerViolationState
     }
 
     /// <summary>
+    /// <see cref="ShingouMushi"/> が毎フレーム設定。赤信号の横断ゾーン内など、信号虫の「継続中」表示・警察連携用。
+    /// </summary>
+    public static void ReportOngoingSignalMushi(bool ongoing)
+    {
+        if (_ongoingSignalMushi == ongoing)
+            return;
+        _ongoingSignalMushi = ongoing;
+        RefreshAggregated();
+    }
+
+    /// <summary>
     /// <see cref="PlayerViolationStateHub"/> から呼び出し。逆走・歩道の現在値を渡し、信号パルスと合算して <see cref="IsViolatingNow"/> を更新します。
     /// </summary>
     public static void Rebuild(bool wrongWayNow, bool sidewalkNow)
@@ -42,7 +54,10 @@ public static class PlayerViolationState
 
     static void RefreshAggregated()
     {
-        IsViolatingNow = IsWrongWayViolating || IsSidewalkViolating || IsSignalViolationPulseActive;
+        IsViolatingNow = IsWrongWayViolating
+            || IsSidewalkViolating
+            || IsSignalViolationPulseActive
+            || _ongoingSignalMushi;
     }
 
 #if UNITY_EDITOR
@@ -50,6 +65,7 @@ public static class PlayerViolationState
     static void ResetStaticsForEnterPlayMode()
     {
         _signalPulseUntilUnscaled = float.NegativeInfinity;
+        _ongoingSignalMushi = false;
         IsViolatingNow = false;
         IsWrongWayViolating = false;
         IsSidewalkViolating = false;
