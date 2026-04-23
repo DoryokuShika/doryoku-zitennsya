@@ -17,6 +17,23 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 {
     static PoliceLineOfSightCatch _activeInstance;
 
+    /// <summary>
+    /// <see cref="PatrolWaypointsBranchRandom"/> が Request 直前に渡す反則金。Catch で 1 回読んだら消費します。
+    /// （Catch の catchPedestrianBellFineAmountText より優先し、未設定ならそちらへフォールバック）
+    /// </summary>
+    static string _pendingPedestrianBellFineFromPatrol;
+
+    /// <summary>歩行者ベル退避から、次の PedestrianBell の Catch で使う反則金文字列を登録します。空白なら登録しない。</summary>
+    public static void NotifyPedestrianBellFineFromPatrolForNextCatch(string fineText)
+    {
+        _pendingPedestrianBellFineFromPatrol = string.IsNullOrWhiteSpace(fineText) ? null : fineText.Trim();
+    }
+
+    static void ClearPendingPedestrianBellFineFromPatrol()
+    {
+        _pendingPedestrianBellFineFromPatrol = null;
+    }
+
     [Header("対象")]
     [Tooltip("捕獲対象・Hub 付与先（自転車＝プレイヤーなど）。Probe の Target が空ならここから流し込みます。")]
     [SerializeField] Transform targetCharacter;
@@ -49,6 +66,8 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [SerializeField] string messageWrongWayCaught = "逆走がばれました。";
     [SerializeField] string messageSidewalkCaught = "歩道走行がばれました。";
     [SerializeField] string messageSignalCaught = "信号無視がばれました。";
+    [SerializeField] string messagePedestrianBellCaught =
+        "\u6b69\u884c\u8005\u306b\u30d9\u30eb\u306a\u3089\u3057\u307e\u3057\u305f\u306d\uff1f";
     [Tooltip("違反中のみ警告がオフで視界だけ捕獲したとき、または種別なしで依頼されたときの種別欄用")]
     [SerializeField] string messageSightOnlyDetail = "";
     [Header("表示の再適用（テキストが切り替わらないとき）")]
@@ -57,6 +76,8 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [Tooltip("上と同じタイミングで反則金テキストも書き直します。罰金額用 Text をここにも割り当てると確実です。")]
     [SerializeField] bool reapplyFineAmountAfterCatchUiShown = true;
     [SerializeField] string catchFineAmountText = "6000円";
+    [Tooltip("PedestrianBell のときの反則金。PatrolWaypointsBranchRandom から非空白で渡された値が優先され、無ければこの欄、それも空なら catchFineAmountText。")]
+    [SerializeField] string catchPedestrianBellFineAmountText = "3000\u5186";
     [SerializeField] TMP_Text catchFineAmountTmp;
     [SerializeField] Text catchFineAmountUi;
     [SerializeField] TMP_Text[] catchAdditionalFineTmp;
@@ -196,15 +217,30 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     void TryCatchWhenViolationVisibleToPoliceInternal(PoliceCatchViolationKind violationKind)
     {
         if (Time.unscaledTime < _sightResumeUnscaledTime)
+        {
+            ClearPendingPedestrianBellFineIfKind(violationKind);
             return;
+        }
 
         if (_caught || targetCharacter == null)
+        {
+            ClearPendingPedestrianBellFineIfKind(violationKind);
             return;
+        }
 
         if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
+        {
+            ClearPendingPedestrianBellFineIfKind(violationKind);
             return;
+        }
 
         Catch(violationKind);
+    }
+
+    void ClearPendingPedestrianBellFineIfKind(PoliceCatchViolationKind violationKind)
+    {
+        if (violationKind == PoliceCatchViolationKind.PedestrianBell)
+            ClearPendingPedestrianBellFineFromPatrol();
     }
 
     void OnGUI()
@@ -234,6 +270,9 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (_caught)
             return;
         _caught = true;
+
+        if (violationKind != PoliceCatchViolationKind.PedestrianBell)
+            ClearPendingPedestrianBellFineFromPatrol();
 
         if (pauseCarAndWalkerMobsOnCatch)
         {
@@ -266,12 +305,15 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (reapplyFineAmountAfterCatchUiShown)
         {
             ViolationFineAmountDisplay.SetFineText(
-                catchFineAmountText,
+                FineAmountTextForKind(violationKind),
                 catchFineAmountTmp,
                 catchFineAmountUi,
                 catchAdditionalFineTmp,
                 catchAdditionalFineUi);
         }
+
+        if (violationKind == PoliceCatchViolationKind.PedestrianBell)
+            ClearPendingPedestrianBellFineFromPatrol();
 
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} Catch: 警告 UI 表示、hide 数={_hiddenWhileWarningSnaps.Count}", this);
@@ -330,8 +372,26 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             PoliceCatchViolationKind.WrongWay => messageWrongWayCaught,
             PoliceCatchViolationKind.Sidewalk => messageSidewalkCaught,
             PoliceCatchViolationKind.Signal => messageSignalCaught,
+            PoliceCatchViolationKind.PedestrianBell => messagePedestrianBellCaught,
             _ => messageSightOnlyDetail,
         };
+    }
+
+    string FineAmountTextForKind(PoliceCatchViolationKind kind)
+    {
+        if (kind != PoliceCatchViolationKind.PedestrianBell)
+            return catchFineAmountText;
+
+        if (!string.IsNullOrEmpty(_pendingPedestrianBellFineFromPatrol))
+        {
+            string s = _pendingPedestrianBellFineFromPatrol;
+            _pendingPedestrianBellFineFromPatrol = null;
+            return s;
+        }
+
+        if (!string.IsNullOrWhiteSpace(catchPedestrianBellFineAmountText))
+            return catchPedestrianBellFineAmountText;
+        return catchFineAmountText;
     }
 
     void CacheBackButtonLayout()
@@ -507,4 +567,12 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} 戻る: 警告終了", this);
     }
+
+#if UNITY_EDITOR
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetPedestrianBellFineStaticForEnterPlayMode()
+    {
+        _pendingPedestrianBellFineFromPatrol = null;
+    }
+#endif
 }

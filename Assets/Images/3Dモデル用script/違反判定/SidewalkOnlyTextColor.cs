@@ -5,6 +5,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 歩道（hodou）に触れている間だけ経過秒を蓄積し、一定秒数に達したら完了表示にします。
+/// 検知は自転車配下の各 Collider の bounds で <see cref="Physics.OverlapBox"/> し、hodou タグのコライダが
+/// 1 つでも重なれば歩道上（<see cref="roadOverlapSuppressesSidewalkCount"/> がオフなら douro は見ません）。
 /// UI テキストのハイライト色は、歩道上かつ左手信号を出していないときだけ適用します。
 /// 警察視界は <see cref="PoliceLineOfSightState"/>（プローブ更新後）を参照します。
 /// </summary>
@@ -14,6 +16,15 @@ public class SidewalkOnlyTextColor : MonoBehaviour
 {
     [Header("Tags (Edit > Project Settings > Tags で作成し、歩道ブロックに付与)")]
     [SerializeField] string sidewalkTag = "hodou";
+
+    [Tooltip("OverlapBox の extents に足す余白（m）。薄い hodou や端ギリの接触でも検出しやすくします。")]
+    [SerializeField] float sidewalkOverlapExtentsPadding = 0.12f;
+
+    [Tooltip("道路タグ（例: douro）。オフのときは参照しません。")]
+    [SerializeField] string roadTag = "douro";
+
+    [Tooltip("オン: hodou と douro の両方に同時に重なっている間は歩道扱いにしない。オフ: hodou に重なっていれば歩道（douro があってもカウント）。")]
+    [SerializeField] bool roadOverlapSuppressesSidewalkCount;
 
     [Header("UI text — 色を変えるテキスト (TMP か uGUI のどちらか)")]
     [SerializeField] TMP_Text tmpText;
@@ -76,6 +87,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     bool _runCompleted;
 
     readonly HashSet<Collider> _touchingSidewalk = new HashSet<Collider>();
+    readonly HashSet<Collider> _touchingRoad = new HashSet<Collider>();
     float _accumulatedSidewalkTime;
 
     void TryAddSidewalk(Collider other)
@@ -84,21 +96,45 @@ public class SidewalkOnlyTextColor : MonoBehaviour
             _touchingSidewalk.Add(other);
     }
 
+    void TryAddRoad(Collider other)
+    {
+        if (roadTag.Length > 0 && other.CompareTag(roadTag))
+            _touchingRoad.Add(other);
+    }
+
+    /// <summary>
+    /// hodou に重なっており、かつ（設定で）douro による打ち消しが無いときに歩道扱い。
+    /// </summary>
+    bool IsOnSidewalkForTimerAndUi()
+    {
+        if (_touchingSidewalk.Count == 0)
+            return false;
+        if (roadOverlapSuppressesSidewalkCount && roadTag.Length > 0 && _touchingRoad.Count > 0)
+            return false;
+        return true;
+    }
+
     /// <summary>
     /// 歩道ブロックがトリガーでない場合でも、衝突（重なり）で検出できるように毎フレーム再計算します。
     /// </summary>
     void RefreshSidewalkOverlaps()
     {
         _touchingSidewalk.Clear();
+        _touchingRoad.Clear();
+
+        float pad = Mathf.Max(0f, sidewalkOverlapExtentsPadding);
+        Vector3 padVec = new Vector3(pad, pad, pad);
 
         foreach (var col in GetComponentsInChildren<Collider>(true))
         {
             if (col == null || !col.enabled)
                 continue;
 
+            Vector3 ext = col.bounds.extents + padVec;
+
             var hits = Physics.OverlapBox(
                 col.bounds.center,
-                col.bounds.extents,
+                ext,
                 col.transform.rotation,
                 ~0,
                 QueryTriggerInteraction.Collide);
@@ -108,6 +144,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
                 if (h == null || h.transform.IsChildOf(transform))
                     continue;
                 TryAddSidewalk(h);
+                TryAddRoad(h);
             }
         }
     }
@@ -141,7 +178,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
             return;
         }
 
-        if (_touchingSidewalk.Count > 0)
+        if (IsOnSidewalkForTimerAndUi())
             _accumulatedSidewalkTime += Time.deltaTime;
 
         if (!_runCompleted && _accumulatedSidewalkTime >= targetSidewalkSeconds)
@@ -198,7 +235,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
 
     void ApplyColor()
     {
-        bool onSidewalk = _touchingSidewalk.Count > 0;
+        bool onSidewalk = IsOnSidewalkForTimerAndUi();
         bool highlight = onSidewalk && !IsLeftHandSignalHeld();
         Color c;
         if (highlight)
@@ -219,7 +256,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
                     ? "HIGHLIGHT (on sidewalk, hand signal OFF)"
                     : onSidewalk
                         ? "normal (on sidewalk but hand signal ON)"
-                        : $"normal (sidewalkCount={_touchingSidewalk.Count})";
+                        : $"normal (hodouHits={_touchingSidewalk.Count}, onSidewalk={IsOnSidewalkForTimerAndUi()})";
                 Debug.Log($"{logPrefix} {reason}", this);
             }
         }
@@ -239,7 +276,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         Color c;
         if (_runCompleted)
             c = sidewalkCountTextColorCompleted;
-        else if (_touchingSidewalk.Count > 0)
+        else if (IsOnSidewalkForTimerAndUi())
         {
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * sidewalkBlinkPulseSpeed);
             c = Color.Lerp(sidewalkBlinkColorLow, sidewalkBlinkColorHigh, pulse);
@@ -276,12 +313,13 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     {
         if (_runCompleted)
             return false;
-        return _touchingSidewalk.Count > 0 && !IsLeftHandSignalHeld();
+        return IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld();
     }
 
 #if UNITY_EDITOR
     void OnValidate()
     {
+        sidewalkOverlapExtentsPadding = Mathf.Max(0f, sidewalkOverlapExtentsPadding);
         if (Application.isPlaying)
             return;
         if (tmpText != null)

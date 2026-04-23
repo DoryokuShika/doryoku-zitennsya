@@ -7,4 +7,6 @@ public enum PoliceCatchViolationKind
     WrongWay = 1,
     Sidewalk = 2,
     Signal = 3,
+    /// <summary>歩行者にベルを鳴らして退避させた（警察に見られた場合の警告表示用）。</summary>
+    PedestrianBell = 4,
 }

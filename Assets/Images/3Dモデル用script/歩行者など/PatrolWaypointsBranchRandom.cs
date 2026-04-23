@@ -1,11 +1,20 @@
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI;
 
 /// <summary>
 /// 各地点（ノード）ごとに「次に行ける候補」をインスペクターで設定し、
 /// その地点に到着するたびに候補からランダムで次の行き先を選びます。
 /// PatrolWaypoints（順番）／PatrolWaypointsRandom（プール一括ランダム）とは別コンポーネントです。
+/// 任意: 自転車が近くにいる状態でマウスホイール操作をしたときに一定時間非表示（当たり・移動停止）し、
+/// 復帰時に自転車が至近にいれば Walker 衝突と同様にゲームオーバー。
+/// 警察視界内で発動したら、歩道・逆走と同じ流れで <see cref="ViolationFineAmountDisplay"/> と
+/// <see cref="PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice"/>（種別 PedestrianBell）を呼びます。
 /// </summary>
+[DefaultExecutionOrder(25)]
 public class PatrolWaypointsBranchRandom : MonoBehaviour
 {
     [Header("Route")]
@@ -25,6 +34,43 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
     [SerializeField] float arrivalDistance = 0.4f;
     [SerializeField] bool startPatrollingOnEnable = true;
 
+    [Header("Bell hide (mouse wheel + bicycle proximity)")]
+    [Tooltip("ベル隠れ（近接＋ホイール）機能を使う")]
+    [SerializeField] bool enablePedestrianBellHide = true;
+
+    [Tooltip("未設定なら Tag Player のオブジェクトの Transform を使用")]
+    [SerializeField] Transform playerBicycle;
+
+    [Tooltip("この歩行者位置から自転車までがこの距離以内なら「近い」とみなす（m）")]
+    [SerializeField] float bellProximityRadiusMeters = 6f;
+
+    [Tooltip("ON: XZ のみ。OFF: 3D 距離")]
+    [SerializeField] bool bellProximityHorizontalOnly = true;
+
+    [Tooltip("Input.GetAxis(\"Mouse ScrollWheel\") の絶対値がこの以上なら「ホイールが回った」")]
+    [SerializeField] float mouseScrollTriggerAbs = 0.02f;
+
+    [Tooltip("非表示・停止する秒数（リアルタイム）")]
+    [SerializeField] float hideSeconds = 10f;
+
+    [Tooltip("復帰直後、自転車がこの距離以内（XZ）なら Walker 衝突と同じゲームオーバー")]
+    [SerializeField] float gameOverIfBicycleWithinMetersAfterReappear = 2.5f;
+
+    [Tooltip("見た目だけ消す場合のルート。未指定ならこのオブジェクト以下の Renderer")]
+    [SerializeField] Transform visualRootForHide;
+
+    [Tooltip("オン: ベル退避が成立したときシーンの PedestrianBellObjectiveUi に残り人数を報告します。")]
+    [SerializeField] bool reportBellDismissalToObjectiveUi = true;
+
+    [Header("Bell hide / police catch (same as WrongWay / sidewalk)")]
+    [Tooltip("警察に見えたベル退避の反則金。空白なら PoliceLineOfSightCatch の Catch Pedestrian Bell Fine Amount を使います。非空白のときは捕獲 UI の再適用にも優先されます。")]
+    [SerializeField] string bellPoliceFineAmountText = "";
+
+    [SerializeField] TMP_Text bellFineAmountDisplayTmp;
+    [SerializeField] Text bellFineAmountDisplayUi;
+    [SerializeField] TMP_Text[] bellAdditionalFineAmountTmp;
+    [SerializeField] Text[] bellAdditionalFineAmountUi;
+
     NavMeshAgent navAgent;
     Rigidbody rb;
     bool useNavMesh;
@@ -32,6 +78,25 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
     Transform currentTarget;
     bool patrolling;
     bool navArrivalLatch;
+    Animator _animator;
+
+    bool _bellHideRoutineActive;
+    Coroutine _bellHideCoroutine;
+    bool _bellAppliedVisualHide;
+
+    Vector3 _bellSavedPos;
+    Quaternion _bellSavedRot;
+    Transform _bellSavedTarget;
+    bool _bellWasPatrolling;
+
+    Collider[] _cachedColliders;
+    Renderer[] _cachedRenderers;
+    readonly List<bool> _colliderPrevEnabled = new List<bool>();
+    readonly List<bool> _rendererPrevEnabled = new List<bool>();
+
+    bool _rbWasKinematic;
+    bool _savedRbUseGravity;
+    RigidbodyConstraints _savedRbConstraints;
 
     void Awake()
     {
@@ -47,6 +112,23 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
             navAgent.updateRotation = true;
             navAgent.autoBraking = false;
         }
+
+        _animator = GetComponentInChildren<Animator>(true);
+
+        if (Application.isPlaying && enablePedestrianBellHide && playerBicycle == null)
+        {
+            var p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null)
+                playerBicycle = p.transform;
+        }
+    }
+
+    void OnValidate()
+    {
+        bellProximityRadiusMeters = Mathf.Max(0.05f, bellProximityRadiusMeters);
+        mouseScrollTriggerAbs = Mathf.Max(0.001f, mouseScrollTriggerAbs);
+        hideSeconds = Mathf.Max(0f, hideSeconds);
+        gameOverIfBicycleWithinMetersAfterReappear = Mathf.Max(0.05f, gameOverIfBicycleWithinMetersAfterReappear);
     }
 
     void OnEnable()
@@ -57,11 +139,26 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
 
     void OnDisable()
     {
+        if (_bellHideCoroutine != null)
+        {
+            StopCoroutine(_bellHideCoroutine);
+            _bellHideCoroutine = null;
+        }
+
+        if (_bellHideRoutineActive)
+        {
+            RestoreBellHidePhysicsAndVisualsOnly();
+            _bellHideRoutineActive = false;
+        }
+
         StopPatrolInternal();
     }
 
     void Update()
     {
+        if (_bellHideRoutineActive)
+            return;
+
         if (MobTrafficPause.IsFrozen)
             return;
 
@@ -78,6 +175,261 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
             UpdateNavMesh(currentTarget);
         else
             UpdateDirectMove(currentTarget);
+    }
+
+    void LateUpdate()
+    {
+        if (!enablePedestrianBellHide || _bellHideRoutineActive || MobTrafficPause.IsFrozen)
+            return;
+
+        TryStartPedestrianBellHideFromInput();
+    }
+
+    void TryStartPedestrianBellHideFromInput()
+    {
+        if (!patrolling || currentTarget == null)
+            return;
+        if (playerBicycle == null)
+            return;
+        if (!IsTransformWithinRadius(transform, playerBicycle, bellProximityRadiusMeters, bellProximityHorizontalOnly))
+            return;
+
+        float wheel = Input.GetAxis("Mouse ScrollWheel");
+        if (Mathf.Abs(wheel) < mouseScrollTriggerAbs)
+            return;
+
+        _bellHideCoroutine = StartCoroutine(BellHideRoutine());
+    }
+
+    static bool IsTransformWithinRadius(Transform origin, Transform target, float radiusMeters, bool horizontalOnly)
+    {
+        if (origin == null || target == null)
+            return false;
+        Vector3 a = origin.position;
+        Vector3 b = target.position;
+        float distSq;
+        if (horizontalOnly)
+        {
+            float dx = a.x - b.x;
+            float dz = a.z - b.z;
+            distSq = dx * dx + dz * dz;
+        }
+        else
+        {
+            distSq = (a - b).sqrMagnitude;
+        }
+
+        float r = radiusMeters;
+        return distSq <= r * r;
+    }
+
+    IEnumerator BellHideRoutine()
+    {
+        _bellHideRoutineActive = true;
+
+        if (reportBellDismissalToObjectiveUi)
+            PedestrianBellObjectiveUi.NotifyBellDismissed();
+
+        _bellSavedPos = transform.position;
+        _bellSavedRot = transform.rotation;
+        _bellSavedTarget = currentTarget;
+        _bellWasPatrolling = patrolling;
+
+        StopPatrolInternal();
+
+        if (useNavMesh && navAgent != null)
+        {
+            navAgent.ResetPath();
+            navAgent.enabled = false;
+        }
+
+        if (rb != null)
+        {
+            _rbWasKinematic = rb.isKinematic;
+            _savedRbUseGravity = rb.useGravity;
+            _savedRbConstraints = rb.constraints;
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+
+        if (_animator != null)
+            _animator.speed = 0f;
+
+        EnsureVisualCaches();
+        ApplyVisualAndColliderHidden(true);
+        _bellAppliedVisualHide = true;
+
+        if (PoliceLineOfSightState.IsTargetInPoliceSightNow)
+        {
+            PoliceLineOfSightCatch.NotifyPedestrianBellFineFromPatrolForNextCatch(bellPoliceFineAmountText);
+            if (!string.IsNullOrWhiteSpace(bellPoliceFineAmountText))
+            {
+                ViolationFineAmountDisplay.SetFineText(
+                    bellPoliceFineAmountText,
+                    bellFineAmountDisplayTmp,
+                    bellFineAmountDisplayUi,
+                    bellAdditionalFineAmountTmp,
+                    bellAdditionalFineAmountUi);
+            }
+
+            PoliceLineOfSightCatch.RequestTryCatchWhenViolationVisibleToPolice(PoliceCatchViolationKind.PedestrianBell);
+        }
+
+        yield return new WaitForSecondsRealtime(hideSeconds);
+
+        if (playerBicycle != null &&
+            IsTransformWithinRadiusAtPosition(
+                _bellSavedPos,
+                playerBicycle,
+                gameOverIfBicycleWithinMetersAfterReappear,
+                horizontalOnly: true))
+        {
+            RestoreBellHidePhysicsAndVisualsOnly();
+            _bellHideRoutineActive = false;
+            _bellHideCoroutine = null;
+            Gemeover.TriggerWalkerCollisionGameOver();
+            yield break;
+        }
+
+        RestoreBellHidePhysicsAndVisualsOnly();
+        ResumePatrolAfterBellSnapshot();
+        _bellHideRoutineActive = false;
+        _bellHideCoroutine = null;
+    }
+
+    void RestoreBellHidePhysicsAndVisualsOnly()
+    {
+        transform.SetPositionAndRotation(_bellSavedPos, _bellSavedRot);
+
+        if (useNavMesh && navAgent != null)
+        {
+            navAgent.enabled = true;
+            if (navAgent.isOnNavMesh)
+                navAgent.Warp(_bellSavedPos);
+        }
+
+        if (rb != null)
+        {
+            rb.isKinematic = _rbWasKinematic;
+            rb.useGravity = _savedRbUseGravity;
+            rb.constraints = _savedRbConstraints;
+        }
+
+        if (_animator != null)
+            _animator.speed = 1f;
+
+        if (_bellAppliedVisualHide)
+        {
+            ApplyVisualAndColliderHidden(false);
+            _bellAppliedVisualHide = false;
+        }
+    }
+
+    void ResumePatrolAfterBellSnapshot()
+    {
+        if (_bellWasPatrolling && nodes != null && nodes.Length > 0)
+        {
+            patrolling = true;
+            navArrivalLatch = false;
+            if (_bellSavedTarget != null)
+                GoToTarget(_bellSavedTarget);
+            else
+                TryRestartFromStartOrStop();
+        }
+    }
+
+    static bool IsTransformWithinRadiusAtPosition(Vector3 worldPos, Transform target, float radiusMeters, bool horizontalOnly)
+    {
+        if (target == null)
+            return false;
+        Vector3 b = target.position;
+        float distSq;
+        if (horizontalOnly)
+        {
+            float dx = worldPos.x - b.x;
+            float dz = worldPos.z - b.z;
+            distSq = dx * dx + dz * dz;
+        }
+        else
+        {
+            distSq = (worldPos - b).sqrMagnitude;
+        }
+
+        float r = radiusMeters;
+        return distSq <= r * r;
+    }
+
+    void EnsureVisualCaches()
+    {
+        if (_cachedColliders != null && _cachedRenderers != null)
+            return;
+
+        Transform root = visualRootForHide != null ? visualRootForHide : transform;
+        _cachedColliders = root.GetComponentsInChildren<Collider>(true);
+        _cachedRenderers = root.GetComponentsInChildren<Renderer>(true);
+    }
+
+    void ApplyVisualAndColliderHidden(bool hidden)
+    {
+        EnsureVisualCaches();
+
+        if (hidden)
+        {
+            _colliderPrevEnabled.Clear();
+            if (_cachedColliders != null)
+            {
+                for (int i = 0; i < _cachedColliders.Length; i++)
+                {
+                    Collider c = _cachedColliders[i];
+                    if (c == null)
+                        continue;
+                    _colliderPrevEnabled.Add(c.enabled);
+                    c.enabled = false;
+                }
+            }
+
+            _rendererPrevEnabled.Clear();
+            if (_cachedRenderers != null)
+            {
+                for (int i = 0; i < _cachedRenderers.Length; i++)
+                {
+                    Renderer r = _cachedRenderers[i];
+                    if (r == null)
+                        continue;
+                    _rendererPrevEnabled.Add(r.enabled);
+                    r.enabled = false;
+                }
+            }
+        }
+        else
+        {
+            if (_cachedColliders != null)
+            {
+                int k = 0;
+                for (int i = 0; i < _cachedColliders.Length; i++)
+                {
+                    Collider c = _cachedColliders[i];
+                    if (c == null)
+                        continue;
+                    if (k < _colliderPrevEnabled.Count)
+                        c.enabled = _colliderPrevEnabled[k++];
+                }
+            }
+
+            if (_cachedRenderers != null)
+            {
+                int k = 0;
+                for (int i = 0; i < _cachedRenderers.Length; i++)
+                {
+                    Renderer r = _cachedRenderers[i];
+                    if (r == null)
+                        continue;
+                    if (k < _rendererPrevEnabled.Count)
+                        r.enabled = _rendererPrevEnabled[k++];
+                }
+            }
+        }
     }
 
     void UpdateNavMesh(Transform target)
@@ -240,6 +592,9 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
     /// <summary>交通一時停止解除直後に呼ばれ、ナビの行き先を付け直します。</summary>
     public void NotifyResumeFromTrafficPause()
     {
+        if (_bellHideRoutineActive)
+            return;
+
         if (!patrolling)
             return;
         if (currentTarget != null)
@@ -278,6 +633,13 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
                 Gizmos.DrawLine(a, nodes[i].nextCandidates[j].position);
             }
         }
+
+        if (!enablePedestrianBellHide)
+            return;
+        Gizmos.color = new Color(0.3f, 0.9f, 0.4f, 0.6f);
+        Gizmos.DrawWireSphere(transform.position, bellProximityRadiusMeters);
+        Gizmos.color = new Color(1f, 0.35f, 0.35f, 0.5f);
+        Gizmos.DrawWireSphere(transform.position, gameOverIfBicycleWithinMetersAfterReappear);
     }
 #endif
 }

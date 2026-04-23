@@ -2,13 +2,15 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// ???????s?E?t???E?M????????u???????v?t???O???W??A?O????????????????N???A?V?[????J???????B
+/// ?????E?t???E?M??????J?E???g??????????A?x?????s???W?i?c??0?j?????????N???A?V?[????J???????B
+/// ?V?[???? <see cref="PedestrianBellObjectiveUi"/> ?????????? Awake ??x???????????????????????????B
 /// </summary>
 public class ViolationTimes : MonoBehaviour
 {
     public static bool SidewalkViolationComplete { get; private set; }
     public static bool WrongWayViolationComplete { get; private set; }
     public static bool SignalViolationComplete { get; private set; }
+    public static bool PedestrianBellObjectiveComplete { get; private set; }
 
     public static void NotifySidewalkViolationComplete()
     {
@@ -34,9 +36,26 @@ public class ViolationTimes : MonoBehaviour
         TryLoadClearSceneIfAllComplete();
     }
 
+    public static void NotifyPedestrianBellObjectiveComplete()
+    {
+        if (PedestrianBellObjectiveComplete)
+            return;
+        PedestrianBellObjectiveComplete = true;
+        TryLoadClearSceneIfAllComplete();
+    }
+
+    /// <summary>?x????W UI ????Z?b?g?????B?N???A?V?[?????„„????B</summary>
+    public static void ResetPedestrianBellObjectiveComplete()
+    {
+        PedestrianBellObjectiveComplete = false;
+    }
+
     public static bool IsAllViolationsComplete()
     {
-        return SidewalkViolationComplete && WrongWayViolationComplete && SignalViolationComplete;
+        return SidewalkViolationComplete
+            && WrongWayViolationComplete
+            && SignalViolationComplete
+            && PedestrianBellObjectiveComplete;
     }
 
     static void TryLoadClearSceneIfAllComplete()
@@ -58,5 +77,24 @@ public class ViolationTimes : MonoBehaviour
         SidewalkViolationComplete = false;
         WrongWayViolationComplete = false;
         SignalViolationComplete = false;
+        PedestrianBellObjectiveComplete = false;
     }
+
+    void Awake()
+    {
+        var bell = FindObjectsOfType<PedestrianBellObjectiveUi>(includeInactive: true);
+        if (bell == null || bell.Length == 0)
+            NotifyPedestrianBellObjectiveComplete();
+    }
+
+#if UNITY_EDITOR
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStaticsForEnterPlayMode()
+    {
+        SidewalkViolationComplete = false;
+        WrongWayViolationComplete = false;
+        SignalViolationComplete = false;
+        PedestrianBellObjectiveComplete = false;
+    }
+#endif
 }

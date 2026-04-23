@@ -5,21 +5,21 @@ using UnityEngine.SceneManagement;
 
 public class SceneChanger : MonoBehaviour
 {
-    [SerializeField] private string nextSceneName; // Ÿ‚ÌƒV[ƒ“–¼
-    [SerializeField] private float waitTime = 3.0f; // ‘Ò‚¿ŠÔi•bj
+    [SerializeField] private string nextSceneName; // ï¿½ï¿½ï¿½ÌƒVï¿½[ï¿½ï¿½ï¿½ï¿½
+    [SerializeField] private float waitTime = 3.0f; // ï¿½Ò‚ï¿½ï¿½ï¿½ï¿½Ôiï¿½bï¿½j
 
     void Start()
     {
-        // ƒQ[ƒ€ŠJn‚ÉƒJƒEƒ“ƒgƒ_ƒEƒ“‚ğŠJn
+        // ï¿½Qï¿½[ï¿½ï¿½ï¿½Jï¿½nï¿½ï¿½ï¿½ÉƒJï¿½Eï¿½ï¿½ï¿½gï¿½_ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½n
         StartCoroutine(WaitAndChangeScene());
     }
 
     IEnumerator WaitAndChangeScene()
     {
-        // w’è‚µ‚½•b”‚¾‚¯‘Ò‹@
+        // ï¿½wï¿½è‚µï¿½ï¿½ï¿½bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò‹@
         yield return new WaitForSeconds(waitTime);
 
-        // ƒV[ƒ“‚ğØ‚è‘Ö‚¦‚é
+        // ï¿½Vï¿½[ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½Ö‚ï¿½ï¿½ï¿½
         SceneManager.LoadScene(nextSceneName);
     }
 }

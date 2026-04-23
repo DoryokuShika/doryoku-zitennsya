@@ -6,16 +6,15 @@ using UnityEngine.SceneManagement;
 
 public class Gemeover : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    /// <summary>
+    /// 歩行者（Walker）接触と同じゲームオーバー。スクリプトから明示的に呼ぶ場合に使用します。
+    /// </summary>
+    public static void TriggerWalkerCollisionGameOver()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        Timer.isRunning = false;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        SceneManager.LoadScene("GameOverScene");
     }
 
     void OnCollisionEnter(Collision collision)
@@ -33,16 +32,12 @@ public class Gemeover : MonoBehaviour
             SceneManager.LoadScene("DiedScene");
         }
         if (collision.gameObject.CompareTag("Walker"))
-        {
-            Timer.isRunning = false;
-            ShowCursor();
-            SceneManager.LoadScene("GameOverScene");
-        }
+            TriggerWalkerCollisionGameOver();
     }
 
     void ShowCursor()
     {
-        Cursor.visible = true; // カーソル表示
-        Cursor.lockState = CursorLockMode.None; // ロック解除
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 }
