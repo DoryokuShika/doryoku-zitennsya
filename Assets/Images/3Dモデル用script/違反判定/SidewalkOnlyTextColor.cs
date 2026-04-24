@@ -74,6 +74,8 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     [Header("警察警告")]
     [Tooltip("オン: 歩道違反中かつ PoliceLineOfSightState で視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
     [SerializeField] bool requestPoliceCatchWhenSpottedDuringSidewalkViolation = true;
+    [Tooltip("オン: カウント完了後も、歩道上かつ左手信号なしなら警察警告を継続します。")]
+    [SerializeField] bool keepPoliceCatchAfterObjectiveComplete = true;
 
     [Header("反則金表示（歩道走行違反完了時）")]
     [SerializeField] string fineAmountText = "6000円";
@@ -156,8 +158,11 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         ApplyColor();
         ApplySidewalkBlinkTargets();
 
+        bool policeCatchActive = IsSidewalkRuleViolationActiveNow() ||
+                                 (keepPoliceCatchAfterObjectiveComplete && _runCompleted && IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld());
+
         if (requestPoliceCatchWhenSpottedDuringSidewalkViolation &&
-            IsSidewalkRuleViolationActiveNow() &&
+            policeCatchActive &&
             PoliceLineOfSightState.IsTargetInPoliceSightNow)
         {
             ViolationFineAmountDisplay.SetFineText(

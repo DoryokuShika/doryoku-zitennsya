@@ -109,6 +109,8 @@ public class ShingouMushi : MonoBehaviour
     [Header("Police sight")]
     [Tooltip("Show fine UI only when police can see the violation this frame.")]
     [SerializeField] bool showCatchUiWhenPoliceSeePlayerOnMushiComplete = true;
+    [Tooltip("??: ????????????????????????????")]
+    [SerializeField] bool keepPoliceCatchAfterObjectiveComplete = true;
 
     Collider _legacyDecisionCollider;
     bool _playerInsideMushiZone;
@@ -232,7 +234,7 @@ public class ShingouMushi : MonoBehaviour
 
         _playerInsideMushiZone = true;
 
-        if (ViolationTimes.SignalViolationComplete)
+        if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
             return;
 
         if (IsSignalMushiStrikeCooldownActive)
@@ -270,7 +272,7 @@ public class ShingouMushi : MonoBehaviour
 
         _playerInsideMushiZone = true;
 
-        if (ViolationTimes.SignalViolationComplete)
+        if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
             return;
 
         if (IsSignalMushiStrikeCooldownActive)
@@ -340,7 +342,7 @@ public class ShingouMushi : MonoBehaviour
             return;
         }
 
-        if (ViolationTimes.SignalViolationComplete)
+        if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
         {
             _pendingResolutionAfterEnter = false;
             return;
@@ -350,37 +352,40 @@ public class ShingouMushi : MonoBehaviour
 
         bool policeSeesPlayerOnMushiFrame = PoliceLineOfSightState.IsTargetInPoliceSightNow;
 
-        if (signalViolationStrikesBeforeObjectiveComplete <= 1)
+        if (!ViolationTimes.SignalViolationComplete)
         {
-            ViolationTimes.NotifySignalViolationComplete();
-            ApplyViolationUiAllTargets(
-                completedWhenNotSpottedLabel,
-                completedWhenNotSpottedTextColor,
-                signalViolationCompleteTextColor,
-                additionalNotSpottedTextColor);
-        }
-        else
-        {
-            if (_strikesRemaining < 0)
-                _strikesRemaining = signalViolationStrikesBeforeObjectiveComplete;
-
-            int displayCount = _strikesRemaining;
-            _strikesRemaining--;
-            string progress = string.Format(signalViolationRemainingCountFormat, displayCount);
-            ApplyViolationUiAllTargets(
-                progress,
-                completedWhenNotSpottedTextColor,
-                completedWhenNotSpottedTextColor,
-                additionalNotSpottedTextColor);
-
-            if (_strikesRemaining <= 0)
+            if (signalViolationStrikesBeforeObjectiveComplete <= 1)
             {
+                ViolationTimes.NotifySignalViolationComplete();
                 ApplyViolationUiAllTargets(
-                    signalViolationCompleteLabel,
+                    completedWhenNotSpottedLabel,
                     completedWhenNotSpottedTextColor,
                     signalViolationCompleteTextColor,
                     additionalNotSpottedTextColor);
-                ViolationTimes.NotifySignalViolationComplete();
+            }
+            else
+            {
+                if (_strikesRemaining < 0)
+                    _strikesRemaining = signalViolationStrikesBeforeObjectiveComplete;
+
+                int displayCount = _strikesRemaining;
+                _strikesRemaining--;
+                string progress = string.Format(signalViolationRemainingCountFormat, displayCount);
+                ApplyViolationUiAllTargets(
+                    progress,
+                    completedWhenNotSpottedTextColor,
+                    completedWhenNotSpottedTextColor,
+                    additionalNotSpottedTextColor);
+
+                if (_strikesRemaining <= 0)
+                {
+                    ApplyViolationUiAllTargets(
+                        signalViolationCompleteLabel,
+                        completedWhenNotSpottedTextColor,
+                        signalViolationCompleteTextColor,
+                        additionalNotSpottedTextColor);
+                    ViolationTimes.NotifySignalViolationComplete();
+                }
             }
         }
 

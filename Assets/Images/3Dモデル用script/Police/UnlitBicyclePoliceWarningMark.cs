@@ -53,6 +53,8 @@ public class UnlitBicyclePoliceWarningMark : MonoBehaviour
     [Header("警察警告")]
     [Tooltip("オン: 無灯火違反カウント進行中かつ視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
     [SerializeField] bool requestPoliceCatchWhenSpottedWhileUnlit = true;
+    [Tooltip("オン: カウント完了後も、暗時間帯で無灯火なら警察警告を継続します。")]
+    [SerializeField] bool keepPoliceCatchAfterObjectiveComplete = true;
 
     [Header("反則金表示（PoliceLineOfSightCatch の再適用と揃える）")]
     [SerializeField] string fineAmountText = "5000円";
@@ -127,7 +129,10 @@ public class UnlitBicyclePoliceWarningMark : MonoBehaviour
         bool policeSee = PoliceLineOfSightState.IsTargetInPoliceSightNow;
         bool cursorOk = Cursor.lockState == CursorLockMode.Locked;
 
-        if (!IsUnlitRuleViolationActiveNow() || !policeSee || !cursorOk || paused)
+        bool policeCatchActive = IsUnlitRuleViolationActiveNow() ||
+                                 (keepPoliceCatchAfterObjectiveComplete && _countdownCompleted && dark && !lightsOn);
+
+        if (!policeCatchActive || !policeSee || !cursorOk || paused)
             return;
 
         PoliceLineOfSightCatch.NotifyUnlitBicycleFineForNextCatch(fineAmountText);

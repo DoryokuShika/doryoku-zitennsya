@@ -92,6 +92,8 @@ public class WrongWayRoadMonitor : MonoBehaviour
     [Header("警察警告")]
     [Tooltip("オン: 逆走違反中かつ PoliceLineOfSightState で視界内のとき、PoliceLineOfSightCatch に警告を依頼します。")]
     [SerializeField] bool requestPoliceCatchWhenSpottedDuringWrongWay = true;
+    [Tooltip("オン: カウント完了後も、逆走中なら警察警告を継続します。")]
+    [SerializeField] bool keepPoliceCatchAfterObjectiveComplete = true;
 
     [Header("反則金表示（逆走違反カウント完了時）")]
     [SerializeField] string fineAmountText = "6000円";
@@ -200,8 +202,11 @@ public class WrongWayRoadMonitor : MonoBehaviour
 
         TickWrongWayCountdownUi(anyWrong);
 
+        bool policeCatchActive = IsWrongWayRuleViolationActiveNow() ||
+                                 (keepPoliceCatchAfterObjectiveComplete && _countdownCompleted && anyWrong);
+
         if (requestPoliceCatchWhenSpottedDuringWrongWay &&
-            IsWrongWayRuleViolationActiveNow() &&
+            policeCatchActive &&
             PoliceLineOfSightState.IsTargetInPoliceSightNow)
         {
             ViolationFineAmountDisplay.SetFineText(
