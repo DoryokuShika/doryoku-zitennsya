@@ -41538,6 +41538,7 @@ MonoBehaviour:
   MinY: -107.2
   MaxY: 198.6
   resetHeight: 0
+  debugLog: 1
 --- !u!1 &1550571794
 GameObject:
   m_ObjectHideFlags: 0
@@ -52599,7 +52600,7 @@ Transform:
   m_GameObject: {fileID: 1998426077}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 53.963844, y: -18.58931, z: -22.23619}
+  m_LocalPosition: {x: 53.963844, y: -18.58931, z: -21.6}
   m_LocalScale: {x: 31.557, y: 29.479, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

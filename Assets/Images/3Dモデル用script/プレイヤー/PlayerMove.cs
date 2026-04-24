@@ -101,6 +101,18 @@ public class PlayerMove : MonoBehaviour
         rb.angularVelocity = Vector3.zero;
     }
 
+    /// <summary>
+    /// 外部（例: 落下復帰処理）から内部状態をリセットしたいときに呼ぶ。
+    /// yaw を現在の transform から取り直し、前進速度を 0 にクリアする。
+    /// </summary>
+    public void ResetInternalStateFromTransform()
+    {
+        yaw = transform.eulerAngles.y;
+        if (yaw > 180f) yaw -= 360f;
+        currentForwardSpeed = 0f;
+        ApplyBodyRotation();
+    }
+
     void MouseLook()
     {
         if (Cursor.lockState != CursorLockMode.Locked)
