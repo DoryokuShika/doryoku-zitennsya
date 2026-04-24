@@ -28791,7 +28791,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   day:
-    durationSeconds: 10
+    durationSeconds: 45
     ambientSky: {r: 0.55, g: 0.72, b: 1, a: 1}
     ambientEquator: {r: 0.48, g: 0.5, b: 0.45, a: 1}
     ambientGround: {r: 0.35, g: 0.32, b: 0.28, a: 1}
