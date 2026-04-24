@@ -9,4 +9,6 @@ public enum PoliceCatchViolationKind
     Signal = 3,
     /// <summary>歩行者にベルを鳴らして退避させた（警察に見られた場合の警告表示用）。</summary>
     PedestrianBell = 4,
+    /// <summary>暗時間帯に灯火が消えたまま警察視界内（無灯火がばれた警告用）。</summary>
+    UnlitBicycleAtNight = 5,
 }

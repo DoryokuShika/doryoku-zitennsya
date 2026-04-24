@@ -1,7 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Constant forward movement; mouse yaw changes direction. Hold S to brake and stop.
+/// Constant forward movement; mouse yaw changes direction.
+/// ブレーキ: カーソルロック中にマウス左または右を押している間（従来の S キーは任意）。
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMove : MonoBehaviour
@@ -11,8 +12,14 @@ public class PlayerMove : MonoBehaviour
     public float ForwardSpeed = 8f;
     [Tooltip("Acceleration toward target speed (units per second).")]
     public float AccelerationPerSecond = 35f;
-    [Tooltip("Deceleration while S is held (units per second).")]
+    [Tooltip("Deceleration while braking (units per second).")]
     public float BrakePerSecond = 50f;
+
+    [Tooltip("オン: カーソルロック中、左または右クリックを押している間ブレーキ。オフ: S キーのみでブレーキ（従来）。")]
+    [SerializeField] bool brakeWhileMouseButtonHeld = true;
+
+    [Tooltip("マウスブレーキ ON のとき、追加で S キーでもブレーキにする")]
+    [SerializeField] bool allowSKeyBrakeInAdditionToMouse;
 
     [Header("Physics (optional)")]
     public RigidbodyInterpolation PositionInterpolation = RigidbodyInterpolation.Interpolate;
@@ -109,10 +116,29 @@ public class PlayerMove : MonoBehaviour
         transform.rotation = Quaternion.AngleAxis(yaw, Vector3.up);
     }
 
+    bool IsBrakingNow()
+    {
+        if (MobTrafficPause.IsFrozen)
+            return false;
+
+        if (brakeWhileMouseButtonHeld)
+        {
+            if (Cursor.lockState == CursorLockMode.Locked &&
+                (Input.GetMouseButton(0) || Input.GetMouseButton(1)))
+                return true;
+            if (allowSKeyBrakeInAdditionToMouse && Input.GetKey(KeyCode.S))
+                return true;
+            return false;
+        }
+
+        return Input.GetKey(KeyCode.S);
+    }
+
     void MoveForwardAndBrake()
     {
-        float target = Input.GetKey(KeyCode.S) ? 0f : ForwardSpeed;
-        float rate = Input.GetKey(KeyCode.S) ? BrakePerSecond : AccelerationPerSecond;
+        bool brake = IsBrakingNow();
+        float target = brake ? 0f : ForwardSpeed;
+        float rate = brake ? BrakePerSecond : AccelerationPerSecond;
         currentForwardSpeed = Mathf.MoveTowards(currentForwardSpeed, target, rate * Time.fixedDeltaTime);
 
         Vector3 forwardDir = Quaternion.AngleAxis(yaw, Vector3.up) * Vector3.forward;

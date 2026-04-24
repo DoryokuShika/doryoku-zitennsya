@@ -23,15 +23,32 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     /// </summary>
     static string _pendingPedestrianBellFineFromPatrol;
 
+    /// <summary>
+    /// <see cref="UnlitBicyclePoliceWarningMark"/> が Request 直前に渡す反則金。Catch で 1 回読んだら消費します。
+    /// （catchUnlitBicycleFineAmountText より優先し、未設定ならそちらへフォールバック）
+    /// </summary>
+    static string _pendingUnlitBicycleFineFromMonitor;
+
     /// <summary>歩行者ベル退避から、次の PedestrianBell の Catch で使う反則金文字列を登録します。空白なら登録しない。</summary>
     public static void NotifyPedestrianBellFineFromPatrolForNextCatch(string fineText)
     {
         _pendingPedestrianBellFineFromPatrol = string.IsNullOrWhiteSpace(fineText) ? null : fineText.Trim();
     }
 
+    /// <summary>無灯火監視から、次の UnlitBicycleAtNight の Catch で使う反則金文字列を登録します。空白なら登録しない。</summary>
+    public static void NotifyUnlitBicycleFineForNextCatch(string fineText)
+    {
+        _pendingUnlitBicycleFineFromMonitor = string.IsNullOrWhiteSpace(fineText) ? null : fineText.Trim();
+    }
+
     static void ClearPendingPedestrianBellFineFromPatrol()
     {
         _pendingPedestrianBellFineFromPatrol = null;
+    }
+
+    static void ClearPendingUnlitBicycleFineFromMonitor()
+    {
+        _pendingUnlitBicycleFineFromMonitor = null;
     }
 
     [Header("対象")]
@@ -45,7 +62,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [SerializeField] PoliceTargetLineOfSightProbe sightProbe;
 
     [Header("違反中のみ警告")]
-    [Tooltip("オン: 逆走・歩道・信号の各スクリプトが「自違反 ∧ 視界内」を照合して依頼したときだけ警告。オフ: 下記の自動判定（視界のみ）。")]
+    [Tooltip("オン: 逆走・歩道・信号・無灯火などが「自違反 ∧ 視界内」を照合して依頼したときだけ警告。オフ: 下記の自動判定（視界のみ）。")]
     [SerializeField] bool requireViolationStateToCatch = true;
 
     [Header("警告パネル（見つかったとき表示）")]
@@ -68,6 +85,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [SerializeField] string messageSignalCaught = "信号無視がばれました。";
     [SerializeField] string messagePedestrianBellCaught =
         "\u6b69\u884c\u8005\u306b\u30d9\u30eb\u306a\u3089\u3057\u307e\u3057\u305f\u306d\uff1f";
+    [SerializeField] string messageUnlitBicycleCaught = "\u591c\u9593\u306b\u706f\u706b\u304c\u6d88\u3048\u305f\u307e\u307e\u8d70\u884c\u304c\u3070\u308c\u307e\u3057\u305f\u3002";
     [Tooltip("違反中のみ警告がオフで視界だけ捕獲したとき、または種別なしで依頼されたときの種別欄用")]
     [SerializeField] string messageSightOnlyDetail = "";
     [Header("表示の再適用（テキストが切り替わらないとき）")]
@@ -78,6 +96,8 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [SerializeField] string catchFineAmountText = "6000円";
     [Tooltip("PedestrianBell のときの反則金。PatrolWaypointsBranchRandom から非空白で渡された値が優先され、無ければこの欄、それも空なら catchFineAmountText。")]
     [SerializeField] string catchPedestrianBellFineAmountText = "3000\u5186";
+    [Tooltip("UnlitBicycleAtNight のときの反則金。UnlitBicyclePoliceWarningMark から非空白で渡された値が優先され、無ければこの欄、それも空なら catchFineAmountText。")]
+    [SerializeField] string catchUnlitBicycleFineAmountText = "5000\u5186";
     [SerializeField] TMP_Text catchFineAmountTmp;
     [SerializeField] Text catchFineAmountUi;
     [SerializeField] TMP_Text[] catchAdditionalFineTmp;
@@ -219,18 +239,21 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (Time.unscaledTime < _sightResumeUnscaledTime)
         {
             ClearPendingPedestrianBellFineIfKind(violationKind);
+            ClearPendingUnlitBicycleFineIfKind(violationKind);
             return;
         }
 
         if (_caught || targetCharacter == null)
         {
             ClearPendingPedestrianBellFineIfKind(violationKind);
+            ClearPendingUnlitBicycleFineIfKind(violationKind);
             return;
         }
 
         if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
         {
             ClearPendingPedestrianBellFineIfKind(violationKind);
+            ClearPendingUnlitBicycleFineIfKind(violationKind);
             return;
         }
 
@@ -241,6 +264,12 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     {
         if (violationKind == PoliceCatchViolationKind.PedestrianBell)
             ClearPendingPedestrianBellFineFromPatrol();
+    }
+
+    void ClearPendingUnlitBicycleFineIfKind(PoliceCatchViolationKind violationKind)
+    {
+        if (violationKind == PoliceCatchViolationKind.UnlitBicycleAtNight)
+            ClearPendingUnlitBicycleFineFromMonitor();
     }
 
     void OnGUI()
@@ -273,6 +302,9 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         if (violationKind != PoliceCatchViolationKind.PedestrianBell)
             ClearPendingPedestrianBellFineFromPatrol();
+
+        if (violationKind != PoliceCatchViolationKind.UnlitBicycleAtNight)
+            ClearPendingUnlitBicycleFineFromMonitor();
 
         if (pauseCarAndWalkerMobsOnCatch)
         {
@@ -314,6 +346,9 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         if (violationKind == PoliceCatchViolationKind.PedestrianBell)
             ClearPendingPedestrianBellFineFromPatrol();
+
+        if (violationKind == PoliceCatchViolationKind.UnlitBicycleAtNight)
+            ClearPendingUnlitBicycleFineFromMonitor();
 
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} Catch: 警告 UI 表示、hide 数={_hiddenWhileWarningSnaps.Count}", this);
@@ -373,24 +408,41 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             PoliceCatchViolationKind.Sidewalk => messageSidewalkCaught,
             PoliceCatchViolationKind.Signal => messageSignalCaught,
             PoliceCatchViolationKind.PedestrianBell => messagePedestrianBellCaught,
+            PoliceCatchViolationKind.UnlitBicycleAtNight => messageUnlitBicycleCaught,
             _ => messageSightOnlyDetail,
         };
     }
 
     string FineAmountTextForKind(PoliceCatchViolationKind kind)
     {
-        if (kind != PoliceCatchViolationKind.PedestrianBell)
-            return catchFineAmountText;
-
-        if (!string.IsNullOrEmpty(_pendingPedestrianBellFineFromPatrol))
+        if (kind == PoliceCatchViolationKind.PedestrianBell)
         {
-            string s = _pendingPedestrianBellFineFromPatrol;
-            _pendingPedestrianBellFineFromPatrol = null;
-            return s;
+            if (!string.IsNullOrEmpty(_pendingPedestrianBellFineFromPatrol))
+            {
+                string s = _pendingPedestrianBellFineFromPatrol;
+                _pendingPedestrianBellFineFromPatrol = null;
+                return s;
+            }
+
+            if (!string.IsNullOrWhiteSpace(catchPedestrianBellFineAmountText))
+                return catchPedestrianBellFineAmountText;
+            return catchFineAmountText;
         }
 
-        if (!string.IsNullOrWhiteSpace(catchPedestrianBellFineAmountText))
-            return catchPedestrianBellFineAmountText;
+        if (kind == PoliceCatchViolationKind.UnlitBicycleAtNight)
+        {
+            if (!string.IsNullOrEmpty(_pendingUnlitBicycleFineFromMonitor))
+            {
+                string s = _pendingUnlitBicycleFineFromMonitor;
+                _pendingUnlitBicycleFineFromMonitor = null;
+                return s;
+            }
+
+            if (!string.IsNullOrWhiteSpace(catchUnlitBicycleFineAmountText))
+                return catchUnlitBicycleFineAmountText;
+            return catchFineAmountText;
+        }
+
         return catchFineAmountText;
     }
 
