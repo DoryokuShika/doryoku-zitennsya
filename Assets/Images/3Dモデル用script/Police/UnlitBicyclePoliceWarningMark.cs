@@ -162,6 +162,7 @@ public class UnlitBicyclePoliceWarningMark : MonoBehaviour
         {
             _remainingUnlitSeconds = 0f;
             _countdownCompleted = true;
+            ViolationTimes.NotifyUnlitLightsViolationComplete();
             ViolationFineAmountDisplay.SetFineText(
                 fineAmountText,
                 fineAmountDisplayTmp,
