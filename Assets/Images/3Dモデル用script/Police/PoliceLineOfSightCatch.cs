@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -16,6 +17,7 @@ using UnityEngine.UI;
 public class PoliceLineOfSightCatch : MonoBehaviour
 {
     static PoliceLineOfSightCatch _activeInstance;
+    public static event Action<PoliceCatchViolationKind> PoliceCatchShown;
 
     /// <summary>
     /// <see cref="PatrolWaypointsBranchRandom"/> が Request 直前に渡す反則金。Catch で 1 回読んだら消費します。
@@ -331,6 +333,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             catchUiRoot.SetActive(true);
 
         onCaught?.Invoke();
+        PoliceCatchShown?.Invoke(violationKind);
 
         if (reapplyViolationMessagesAfterCatchUiShown)
             ApplyMessageToUi(violationKind);
