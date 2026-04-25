@@ -1119,8 +1119,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 509, y: 691.63}
-  m_SizeDelta: {x: 891.84, y: 423.5228}
+  m_AnchoredPosition: {x: 509, y: 641.41}
+  m_SizeDelta: {x: 891.84, y: 523.97}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &838219888
 MonoBehaviour:
@@ -1155,9 +1155,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\r\n\u81EA\u8EE2\u8ECA\u306F\u5E38\u306B\u81EA\u52D5\u3067\u524D\u306B\u9032\u307F\u307E\u3059\r\n\t\u8FD1\u304F\u306B\u8B66\u5BDF\u304C\u3044\u308B\u72B6\u614B\u3067\u9055\u53CD\u3092\u3057\u3066\u3057\u307E\u3046\u3068
+  m_Text: "\r\n\t\u81EA\u8EE2\u8ECA\u306F\u5E38\u306B\u81EA\u52D5\u3067\u524D\u306B\u9032\u307F\u307E\u3059\r\n\t\u8FD1\u304F\u306B\u8B66\u5BDF\u304C\u3044\u308B\u72B6\u614B\u3067\u9055\u53CD\u3092\u3057\u3066\u3057\u307E\u3046\u3068
     \uFF1D \u9752\u5207\u7B26\u7372\u5F97\r\n\t\u4E8C\u679A\u7372\u5F97\u3067\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC\r\n\r\n\t\u8ECA\u3084\u6B69\u884C\u8005\u306B\u885D\u7A81\u3057\u3066\u3057\u307E\u3046\u3068
-    \uFF1D \u4E8B\u6545\u767A\u751F\u3001\r\n\t\u4E00\u767A\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC\uFF01\r\n\r\n\t\u8B66\u5BDF\u304C\u3044\u306A\u3044\u72B6\u614B\u3067\u9055\u53CD\u3092\u3059\u3079\u3066\u304A\u3053\u306A\u3046\u3068...\r\n\t\u6700\u901F\u30BF\u30A4\u30E0\u3092\u76EE\u6307\u3057\u3066\u304F\u3060\u3055\u3044"
+    \uFF1D \u4E8B\u6545\u767A\u751F\u3001\r\n\t\u4E00\u767A\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC\uFF01\r\n\r\t\n\t\u8ECA\u3084\u30D1\u30C8\u30AB\u30FC\u3068\u8DDD\u96E2\u304C\u8FD1\u304F\u306A\u308B\u306B\u3064\u308C\u3066\u305D\u308C\u305E\u308C\u306E\n\t\u8ECA\u306E\u97F3\u304C\u3067\u5927\u304D\u304F\u306A\u308A\u307E\u3059\u3002\u30B2\u30FC\u30E0\u306E\u53C2\u8003\u306B\u3057\u307E\u3057\u3087\u3046\u3002\n\n\t\u8B66\u5BDF\u304C\u3044\u306A\u3044\u72B6\u614B\u3067\u9055\u53CD\u3092\u3059\u3079\u3066\u304A\u3053\u306A\u3046\u3068...\r\n\t\u6700\u901F\u30BF\u30A4\u30E0\u3092\u76EE\u6307\u3057\u3066\u304F\u3060\u3055\u3044"
 --- !u!222 &838219889
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2069,8 +2069,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -454, y: 151.63}
-  m_SizeDelta: {x: -1018.538, y: -656.48}
+  m_AnchoredPosition: {x: -454, y: 101.41}
+  m_SizeDelta: {x: -1018.538, y: -556.04}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1897981927
 MonoBehaviour:

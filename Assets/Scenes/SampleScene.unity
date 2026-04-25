@@ -7556,7 +7556,7 @@ Transform:
   m_GameObject: {fileID: 315757582}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 7.011, y: -22.2, z: 17.8253}
+  m_LocalPosition: {x: 7.011, y: -22.2, z: 17.6}
   m_LocalScale: {x: 1.0865632, y: 1, z: 11.832226}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14374,7 +14374,7 @@ Transform:
   m_GameObject: {fileID: 505185838}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 6, y: -22.2, z: 67.6064}
+  m_LocalPosition: {x: 6, y: -22.2, z: 67.9}
   m_LocalScale: {x: 1.0714225, y: 1, z: 12.001447}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -17342,14 +17342,14 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 608462025}
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 220d4a713d2588545bfc785da66adbe8, type: 3}
+  m_audioClip: {fileID: 8300000, guid: c5beb316d777f034a91d81105de731dd, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
@@ -20278,7 +20278,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -10.7, y: -56, z: 76.44}
-  m_LocalScale: {x: 1.8209896, y: 1, z: 0.028918246}
+  m_LocalScale: {x: 1.8209896, y: 1, z: 0.033762053}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 146715247}
@@ -23437,7 +23437,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 3d8a59d7d11f07749be1b0a11f66da1c, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.5
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -30030,7 +30030,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   day:
-    durationSeconds: 4
+    durationSeconds: 45
     ambientSky: {r: 0.55, g: 0.72, b: 1, a: 1}
     ambientEquator: {r: 0.48, g: 0.5, b: 0.45, a: 1}
     ambientGround: {r: 0.35, g: 0.32, b: 0.28, a: 1}
@@ -33051,7 +33051,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -10.7, y: -56, z: 40.09}
-  m_LocalScale: {x: 1.8209896, y: 1, z: 0.028918246}
+  m_LocalScale: {x: 1.8209896, y: 1, z: 0.039250735}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 146715247}
@@ -36646,7 +36646,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: de1b9b3f8a05e0845ad7175ba80f7fea, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.244
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -38590,8 +38590,8 @@ MonoBehaviour:
   loopAudioSource: {fileID: 1580438809}
   playOnStartIfNotPlaying: 1
   minDistance: 6
-  maxDistance: 300
-  volumeAtMinDistance: 1
+  maxDistance: 100
+  volumeAtMinDistance: 0.271
   volumeAtMaxDistance: 0
   volumeCurve:
     serializedVersion: 2
@@ -42577,9 +42577,9 @@ MonoBehaviour:
   bicycle: {fileID: 1543107362}
   loopAudioSource: {fileID: 818005009}
   playOnStartIfNotPlaying: 0
-  minDistance: 60
-  maxDistance: 300
-  volumeAtMinDistance: 1
+  minDistance: 30
+  maxDistance: 200
+  volumeAtMinDistance: 0.367
   volumeAtMaxDistance: 0
   volumeCurve:
     serializedVersion: 2
@@ -43087,8 +43087,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1543107361}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.7262338, z: -0, w: -0.6874478}
-  m_LocalPosition: {x: -614.7, y: 270.17, z: -1320.3}
+  m_LocalRotation: {x: -0, y: -0.7186263, z: -0, w: -0.6953965}
+  m_LocalPosition: {x: -700.8, y: 271.2, z: -1371}
   m_LocalScale: {x: 0.2097628, y: 1, z: 4.288677}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -43098,7 +43098,7 @@ Transform:
   - {fileID: 1806034325}
   - {fileID: 1061672585}
   m_Father: {fileID: 1427471635}
-  m_LocalEulerAnglesHint: {x: 0, y: 266.857, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 451.88202, z: 0}
 --- !u!114 &1543107364
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -43121,7 +43121,7 @@ MonoBehaviour:
   playAtariCollisionSfx: 1
   atariSfxSource: {fileID: 1585229768}
   atariCollisionClip: {fileID: 8300000, guid: 3902b0db570bfa44a83060195d299ba4, type: 3}
-  atariCollisionVolume: 1
+  atariCollisionVolume: 0.487
   atariSfxCooldownSeconds: 0.08
   mouseIgnoreFramesAfterStart: 0
 --- !u!54 &1543107365
@@ -43345,7 +43345,7 @@ MonoBehaviour:
   bellScrollTriggerAbs: 0.02
   bellAudioSource: {fileID: 1311182213}
   bellScrollClip: {fileID: 8300000, guid: de1b9b3f8a05e0845ad7175ba80f7fea, type: 3}
-  bellVolume: 1
+  bellVolume: 0.4
   playLightToggleSfx: 1
   lightToggleSfxSource: {fileID: 1679187637}
   lightToggleOnClip: {fileID: 8300000, guid: cd2ce1e84395a91448202607379dba5f, type: 3}
@@ -43367,7 +43367,7 @@ MonoBehaviour:
   MaxZ: 362.1
   MinX: -360.2
   MaxX: 424.4
-  MinY: -107.2
+  MinY: -4.2
   MaxY: 198.6
   resetHeight: 0
   debugLog: 1
@@ -44261,8 +44261,8 @@ Transform:
   m_GameObject: {fileID: 1569535257}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 60.0276, y: -22.2, z: 66.8}
-  m_LocalScale: {x: 1.3007523, y: 1, z: 1.3247159}
+  m_LocalPosition: {x: 60.0276, y: -22.2, z: 66.9832}
+  m_LocalScale: {x: 1.2640711, y: 1, z: 1.3247159}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 554164953}
@@ -44383,7 +44383,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: adc6b75fe05d3684ca9443dd244d98eb, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.5
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -44617,7 +44617,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 3902b0db570bfa44a83060195d299ba4, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.5
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -46082,7 +46082,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 144.4, y: -56, z: 76.5}
-  m_LocalScale: {x: 1.8837174, y: 1, z: 0.028918246}
+  m_LocalScale: {x: 1.8837174, y: 1, z: 0.032567192}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 146715247}
@@ -51780,9 +51780,9 @@ MonoBehaviour:
   bicycle: {fileID: 1543107362}
   loopAudioSource: {fileID: 818005009}
   playOnStartIfNotPlaying: 1
-  minDistance: 60
-  maxDistance: 300
-  volumeAtMinDistance: 1
+  minDistance: 30
+  maxDistance: 200
+  volumeAtMinDistance: 0.314
   volumeAtMaxDistance: 0
   volumeCurve:
     serializedVersion: 2
@@ -53709,8 +53709,8 @@ Transform:
   m_GameObject: {fileID: 1911067689}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 154.7388, y: -22.2, z: 67.2792}
-  m_LocalScale: {x: 1.0778152, y: 1, z: 11.913748}
+  m_LocalPosition: {x: 154.7388, y: -22.2, z: 67.4191}
+  m_LocalScale: {x: 1.0497919, y: 1, z: 11.913748}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 554164953}
@@ -53831,7 +53831,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 185efb59f54c23c4883d412b8c7216fb, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.5
   m_Pitch: 1
   Loop: 0
   Mute: 0
