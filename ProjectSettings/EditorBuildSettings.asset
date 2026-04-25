@@ -26,4 +26,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Clear.unity
     guid: 9f4b31661a5438047b07ca5b9b5b2705
+  - enabled: 1
+    path: Assets/Scenes/PoliceOver.unity
+    guid: 745219e7e7953e34880825e12b839839
   m_configObjects: {}

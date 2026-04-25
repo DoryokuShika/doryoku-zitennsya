@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
@@ -27,6 +28,8 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
     [SerializeField] string twoTicketsWarningMessage = "青切符2枚です。運転中に警察に見られるとゲームオーバーになります。";
 
     [Header("青切符2枚到達後のゲームオーバー")]
+    [Tooltip("2枚の状態で走行中に警察視界に入ったときに読み込むシーン名（Build Settings に登録）")]
+    [SerializeField] string twoTicketsPoliceGameOverSceneName = "PoliceOver";
     [Tooltip("この速度以上を『走行中』として扱います（XZ速度）")]
     [SerializeField] float minDrivingSpeed = 0.35f;
     [Tooltip("速度参照用。未設定なら Player を検索します")]
@@ -61,7 +64,16 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
             return;
 
         _gameOverTriggered = true;
-        Gemeover.TriggerWalkerCollisionGameOver();
+        TriggerTwoTicketsPoliceGameOver();
+    }
+
+    void TriggerTwoTicketsPoliceGameOver()
+    {
+        Timer.isRunning = false;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        if (!string.IsNullOrWhiteSpace(twoTicketsPoliceGameOverSceneName))
+            SceneManager.LoadScene(twoTicketsPoliceGameOverSceneName.Trim());
     }
 
     void OnPoliceCatchShown(PoliceCatchViolationKind _)
