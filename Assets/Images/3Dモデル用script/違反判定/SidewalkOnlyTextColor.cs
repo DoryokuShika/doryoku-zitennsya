@@ -47,6 +47,10 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     [Header("歩道上での走行時間 → 残り秒カウントダウン")]
     [Tooltip("歩道に触れている間だけ内部で経過が加算され、表示は残り秒が減っていきます。0に達すると完了表記に切り替わります")]
     [SerializeField] float targetSidewalkSeconds = 30f;
+    [Tooltip("この速度未満では歩道カウントを進めません（0で完全停止時を除外）")]
+    [SerializeField] float minSpeedForSidewalkCount = 0.05f;
+    [Tooltip("速度参照用。未指定ならこのオブジェクト/親の Rigidbody を使用")]
+    [SerializeField] Rigidbody speedSourceBody;
     [SerializeField] TMP_Text countTmpText;
     [SerializeField] Text countUiText;
     [Tooltip("残り秒は {0} に入ります。例: 残り{0}秒")]
@@ -91,6 +95,14 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     readonly HashSet<Collider> _touchingSidewalk = new HashSet<Collider>();
     readonly HashSet<Collider> _touchingRoad = new HashSet<Collider>();
     float _accumulatedSidewalkTime;
+
+    void Awake()
+    {
+        if (speedSourceBody == null)
+            speedSourceBody = GetComponent<Rigidbody>();
+        if (speedSourceBody == null)
+            speedSourceBody = GetComponentInParent<Rigidbody>();
+    }
 
     void TryAddSidewalk(Collider other)
     {
@@ -159,7 +171,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         ApplySidewalkBlinkTargets();
 
         bool policeCatchActive = IsSidewalkRuleViolationActiveNow() ||
-                                 (keepPoliceCatchAfterObjectiveComplete && _runCompleted && IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld());
+                                 (keepPoliceCatchAfterObjectiveComplete && _runCompleted && IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld() && IsMovingNow());
 
         if (requestPoliceCatchWhenSpottedDuringSidewalkViolation &&
             policeCatchActive &&
@@ -183,7 +195,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
             return;
         }
 
-        if (IsOnSidewalkForTimerAndUi())
+        if (IsOnSidewalkForTimerAndUi() && IsMovingNow())
             _accumulatedSidewalkTime += Time.deltaTime;
 
         if (!_runCompleted && _accumulatedSidewalkTime >= targetSidewalkSeconds)
@@ -241,7 +253,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     void ApplyColor()
     {
         bool onSidewalk = IsOnSidewalkForTimerAndUi();
-        bool highlight = onSidewalk && !IsLeftHandSignalHeld();
+        bool highlight = onSidewalk && !IsLeftHandSignalHeld() && IsMovingNow();
         Color c;
         if (highlight)
         {
@@ -281,7 +293,7 @@ public class SidewalkOnlyTextColor : MonoBehaviour
         Color c;
         if (_runCompleted)
             c = sidewalkCountTextColorCompleted;
-        else if (IsOnSidewalkForTimerAndUi())
+        else if (IsOnSidewalkForTimerAndUi() && IsMovingNow())
         {
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * sidewalkBlinkPulseSpeed);
             c = Color.Lerp(sidewalkBlinkColorLow, sidewalkBlinkColorHigh, pulse);
@@ -318,7 +330,18 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     {
         if (_runCompleted)
             return false;
-        return IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld();
+        return IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld() && IsMovingNow();
+    }
+
+    bool IsMovingNow()
+    {
+        if (speedSourceBody == null)
+            return true;
+
+        Vector3 v = speedSourceBody.velocity;
+        v.y = 0f;
+        float min = Mathf.Max(0f, minSpeedForSidewalkCount);
+        return v.sqrMagnitude >= min * min;
     }
 
 #if UNITY_EDITOR
