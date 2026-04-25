@@ -19,6 +19,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 {
     static PoliceLineOfSightCatch _activeInstance;
     public static event Action<PoliceCatchViolationKind> PoliceCatchShown;
+    public static event Action PoliceCatchClosed;
 
     /// <summary>
     /// <see cref="PatrolWaypointsBranchRandom"/> が Request 直前に渡す反則金。Catch で 1 回読んだら消費します。
@@ -653,6 +654,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         _sightResumeUnscaledTime = Time.unscaledTime + Mathf.Max(0f, sightResumeDelayAfterRetry);
 
         onRetry?.Invoke();
+        PoliceCatchClosed?.Invoke();
 
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} 戻る: 警告終了", this);

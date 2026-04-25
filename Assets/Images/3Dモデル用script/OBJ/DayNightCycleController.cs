@@ -98,6 +98,22 @@ public class DayNightCycleController : MonoBehaviour
     [Tooltip("空なら RenderSettings.sun、なければシーン内の Directional を検索")]
     [SerializeField] Light directionalSun;
 
+    [Header("Night lights (夕・夜・朝で点灯)")]
+    [Tooltip("ここにまとめて登録した Light は、昼だけ無効、夕方・夜・朝方で有効にします。")]
+    [SerializeField] Light[] lightsEnabledOutsideDay;
+    [Tooltip("Light 以外でまとめて切り替えたいオブジェクト（ランプ装飾など）")]
+    [SerializeField] GameObject[] objectsEnabledOutsideDay;
+
+    [Header("Skybox (phase specific)")]
+    [Tooltip("昼フェーズで使う Skybox マテリアル")]
+    [SerializeField] Material daySkybox;
+    [Tooltip("夕方フェーズで使う Skybox マテリアル")]
+    [SerializeField] Material eveningSkybox;
+    [Tooltip("夜フェーズで使う Skybox マテリアル")]
+    [SerializeField] Material nightSkybox;
+    [Tooltip("朝方フェーズで使う Skybox マテリアル")]
+    [SerializeField] Material dawnSkybox;
+
     [Tooltip("一時停止中も時間を進める")]
     [SerializeField] bool advanceTimeWhileTrafficPaused;
 
@@ -190,6 +206,48 @@ public class DayNightCycleController : MonoBehaviour
         else
         {
             RenderSettings.fog = false;
+        }
+
+        bool darkish = _phaseIndex != 0; // 0 = Day
+        ApplyOutsideDayLights(darkish);
+
+        Material sky = GetSkyboxForCurrentPhase();
+        if (sky != null && RenderSettings.skybox != sky)
+        {
+            RenderSettings.skybox = sky;
+            DynamicGI.UpdateEnvironment();
+        }
+    }
+
+    Material GetSkyboxForCurrentPhase()
+    {
+        return _phaseIndex switch
+        {
+            0 => daySkybox,
+            1 => eveningSkybox,
+            2 => nightSkybox,
+            _ => dawnSkybox,
+        };
+    }
+
+    void ApplyOutsideDayLights(bool enabled)
+    {
+        if (lightsEnabledOutsideDay != null)
+        {
+            for (int i = 0; i < lightsEnabledOutsideDay.Length; i++)
+            {
+                if (lightsEnabledOutsideDay[i] != null)
+                    lightsEnabledOutsideDay[i].enabled = enabled;
+            }
+        }
+
+        if (objectsEnabledOutsideDay != null)
+        {
+            for (int i = 0; i < objectsEnabledOutsideDay.Length; i++)
+            {
+                if (objectsEnabledOutsideDay[i] != null)
+                    objectsEnabledOutsideDay[i].SetActive(enabled);
+            }
         }
     }
 }

@@ -27,13 +27,9 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
     [SerializeField] Text twoTicketsWarningUi;
     [SerializeField] string twoTicketsWarningMessage = "青切符2枚です。運転中に警察に見られるとゲームオーバーになります。";
 
-    [Header("青切符2枚到達後のゲームオーバー")]
-    [Tooltip("2枚の状態で走行中に警察視界に入ったときに読み込むシーン名（Build Settings に登録）")]
+    [Header("青切符2枚到達後の遷移")]
+    [Tooltip("2枚の状態で警告UIを閉じた瞬間に読み込むシーン名（Build Settings に登録）")]
     [SerializeField] string twoTicketsPoliceGameOverSceneName = "PoliceOver";
-    [Tooltip("この速度以上を『走行中』として扱います（XZ速度）")]
-    [SerializeField] float minDrivingSpeed = 0.35f;
-    [Tooltip("速度参照用。未設定なら Player を検索します")]
-    [SerializeField] Rigidbody speedSourceBody;
 
     int _warningCount;
     bool _gameOverTriggered;
@@ -41,30 +37,16 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
     void OnEnable()
     {
         PoliceLineOfSightCatch.PoliceCatchShown += OnPoliceCatchShown;
+        PoliceLineOfSightCatch.PoliceCatchClosed += OnPoliceCatchClosed;
         if (resetOnEnable)
             ResetCountAndIcons();
-        ResolveSpeedSourceIfNeeded();
         ApplyTwoTicketsWarningText();
     }
 
     void OnDisable()
     {
         PoliceLineOfSightCatch.PoliceCatchShown -= OnPoliceCatchShown;
-    }
-
-    void Update()
-    {
-        if (_gameOverTriggered || _warningCount < 2)
-            return;
-
-        if (!PoliceLineOfSightState.IsTargetInPoliceSightNow)
-            return;
-
-        if (!IsDrivingNow())
-            return;
-
-        _gameOverTriggered = true;
-        TriggerTwoTicketsPoliceGameOver();
+        PoliceLineOfSightCatch.PoliceCatchClosed -= OnPoliceCatchClosed;
     }
 
     void TriggerTwoTicketsPoliceGameOver()
@@ -90,6 +72,14 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
             warningSlots[index].gameObject.SetActive(true);
 
         ApplyTwoTicketsWarningText();
+    }
+
+    void OnPoliceCatchClosed()
+    {
+        if (_gameOverTriggered || _warningCount < 2)
+            return;
+        _gameOverTriggered = true;
+        TriggerTwoTicketsPoliceGameOver();
     }
 
     public void ResetCountAndSlots()
@@ -134,29 +124,4 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
         }
     }
 
-    void ResolveSpeedSourceIfNeeded()
-    {
-        if (speedSourceBody != null)
-            return;
-
-        var player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null)
-            return;
-
-        speedSourceBody = player.GetComponent<Rigidbody>();
-        if (speedSourceBody == null)
-            speedSourceBody = player.GetComponentInChildren<Rigidbody>(true);
-    }
-
-    bool IsDrivingNow()
-    {
-        if (speedSourceBody == null)
-            ResolveSpeedSourceIfNeeded();
-        if (speedSourceBody == null)
-            return true;
-
-        Vector3 v = speedSourceBody.velocity;
-        v.y = 0f;
-        return v.sqrMagnitude >= minDrivingSpeed * minDrivingSpeed;
-    }
 }

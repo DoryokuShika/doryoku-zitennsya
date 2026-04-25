@@ -9,6 +9,7 @@ TagManager:
   - Walker
   - hodou
   - douro
+  - ATARI
   layers:
   - Default
   - TransparentFX
