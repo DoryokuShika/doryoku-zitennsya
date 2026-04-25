@@ -25,9 +25,21 @@ public class PlayerMove : MonoBehaviour
     public RigidbodyInterpolation PositionInterpolation = RigidbodyInterpolation.Interpolate;
     public CollisionDetectionMode PhysicsCollisionMode = CollisionDetectionMode.Continuous;
 
+    [Header("ATARI collision SFX")]
+    [Tooltip("ATARI タグのオブジェクトに接触したとき効果音を鳴らす")]
+    [SerializeField] bool playAtariCollisionSfx = true;
+    [Tooltip("未指定ならこのオブジェクトの AudioSource を使用")]
+    [SerializeField] AudioSource atariSfxSource;
+    [SerializeField] AudioClip atariCollisionClip;
+    [Range(0f, 1f)]
+    [SerializeField] float atariCollisionVolume = 1f;
+    [Tooltip("連続接触で鳴りすぎないようにする最小間隔（秒）")]
+    [SerializeField] float atariSfxCooldownSeconds = 0.08f;
+
     float yaw;
     float currentForwardSpeed;
     Rigidbody rb;
+    float _nextAtariSfxTime;
 
     [SerializeField]
     [Tooltip("Ignore mouse deltas for this many frames after start (avoids a jump when the cursor locks).")]
@@ -52,6 +64,9 @@ public class PlayerMove : MonoBehaviour
         Cursor.visible = false;
 
         rb.freezeRotation = true;
+
+        if (atariSfxSource == null)
+            atariSfxSource = GetComponent<AudioSource>();
     }
 
     void Update()
@@ -156,5 +171,20 @@ public class PlayerMove : MonoBehaviour
         Vector3 forwardDir = Quaternion.AngleAxis(yaw, Vector3.up) * Vector3.forward;
         Vector3 horizontal = forwardDir * currentForwardSpeed;
         rb.velocity = new Vector3(horizontal.x, rb.velocity.y, horizontal.z);
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (!playAtariCollisionSfx)
+            return;
+        if (collision == null || collision.gameObject == null || !collision.gameObject.CompareTag("ATARI"))
+            return;
+        if (Time.unscaledTime < _nextAtariSfxTime)
+            return;
+        if (atariSfxSource == null || atariCollisionClip == null)
+            return;
+
+        atariSfxSource.PlayOneShot(atariCollisionClip, atariCollisionVolume);
+        _nextAtariSfxTime = Time.unscaledTime + Mathf.Max(0f, atariSfxCooldownSeconds);
     }
 }

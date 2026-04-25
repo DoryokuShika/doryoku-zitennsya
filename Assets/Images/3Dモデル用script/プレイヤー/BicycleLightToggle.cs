@@ -23,6 +23,16 @@ public class BicycleLightToggle : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] float bellVolume = 1f;
 
+    [Header("Light toggle SFX")]
+    [Tooltip("ライト切り替え時に効果音を鳴らす")]
+    [SerializeField] bool playLightToggleSfx = true;
+    [Tooltip("未指定なら bellAudioSource を流用し、さらに未指定ならこのオブジェクトの AudioSource を使用")]
+    [SerializeField] AudioSource lightToggleSfxSource;
+    [SerializeField] AudioClip lightToggleOnClip;
+    [SerializeField] AudioClip lightToggleOffClip;
+    [Range(0f, 1f)]
+    [SerializeField] float lightToggleSfxVolume = 1f;
+
     bool _lightsOn = true;
 
     void Start()
@@ -32,6 +42,8 @@ public class BicycleLightToggle : MonoBehaviour
 
         if (bellAudioSource == null)
             bellAudioSource = GetComponent<AudioSource>();
+        if (lightToggleSfxSource == null)
+            lightToggleSfxSource = bellAudioSource != null ? bellAudioSource : GetComponent<AudioSource>();
     }
 
     void Update()
@@ -59,6 +71,8 @@ public class BicycleLightToggle : MonoBehaviour
             if (lightTargets[i] != null)
                 lightTargets[i].SetActive(_lightsOn);
         }
+
+        PlayLightToggleSfx();
     }
 
     void PlayBellSound()
@@ -66,6 +80,19 @@ public class BicycleLightToggle : MonoBehaviour
         if (bellAudioSource == null || bellScrollClip == null)
             return;
         bellAudioSource.PlayOneShot(bellScrollClip, bellVolume);
+    }
+
+    void PlayLightToggleSfx()
+    {
+        if (!playLightToggleSfx)
+            return;
+        if (lightToggleSfxSource == null)
+            return;
+
+        AudioClip clip = _lightsOn ? lightToggleOnClip : lightToggleOffClip;
+        if (clip == null)
+            return;
+        lightToggleSfxSource.PlayOneShot(clip, lightToggleSfxVolume);
     }
 
     /// <summary>他スクリプトから参照用（将来ホイールと連動する場合など）</summary>
