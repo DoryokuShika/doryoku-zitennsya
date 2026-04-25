@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -123,6 +124,20 @@ public class PoliceLineOfSightCatch : MonoBehaviour
     [Tooltip("戻る直後、この秒は再度捕獲しません")]
     [SerializeField] float sightResumeDelayAfterRetry = 1.5f;
 
+    [Header("捕獲時 効果音（警告表示のタイミング）")]
+    [Tooltip("オン: 先に1つ、続けて2つ目のSEを鳴らします。オフ: 何もしません。")]
+    [SerializeField] bool playCatchSfx = true;
+    [Tooltip("未指定ならこのコンポーネントと同じ GameObject から取得。なければ鳴しません。")]
+    [SerializeField] AudioSource catchSfxSource;
+    [Tooltip("1つ目のSE")]
+    [SerializeField] AudioClip catchSfxFirst;
+    [Tooltip("2つ目のSE（1つ目の再生後に鳴る）")]
+    [SerializeField] AudioClip catchSfxSecond;
+    [Range(0f, 1f)]
+    [SerializeField] float catchSfxVolume = 1f;
+    [Tooltip("1つ目のクリップの長さに加算する、2つ目までの待ち秒（0なら1つ目が終わってすぐ2つ目）")]
+    [SerializeField] float catchSfxExtraDelayAfterFirstSeconds;
+
     [Header("捕獲時の挙動")]
     [SerializeField] bool stopTimerOnCatch = true;
     [SerializeField] bool unlockCursorOnCatch = true;
@@ -143,6 +158,7 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
     bool _caught;
     float _sightResumeUnscaledTime = float.NegativeInfinity;
+    Coroutine _catchSfxRoutine;
 
     struct HiddenGoSnap
     {
@@ -209,6 +225,9 @@ public class PoliceLineOfSightCatch : MonoBehaviour
             backButton.onClick.AddListener(OnBackPressed);
 
         CacheBackButtonLayout();
+
+        if (catchSfxSource == null)
+            catchSfxSource = GetComponent<AudioSource>();
     }
 
     void OnDestroy()
@@ -334,6 +353,16 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         onCaught?.Invoke();
         PoliceCatchShown?.Invoke(violationKind);
+
+        if (playCatchSfx && (catchSfxFirst != null || catchSfxSecond != null))
+        {
+            if (_catchSfxRoutine != null)
+            {
+                StopCoroutine(_catchSfxRoutine);
+                _catchSfxRoutine = null;
+            }
+            _catchSfxRoutine = StartCoroutine(PlayCatchSfxSequence());
+        }
 
         if (reapplyViolationMessagesAfterCatchUiShown)
             ApplyMessageToUi(violationKind);
@@ -596,6 +625,12 @@ public class PoliceLineOfSightCatch : MonoBehaviour
         if (!_caught)
             return;
 
+        if (_catchSfxRoutine != null)
+        {
+            StopCoroutine(_catchSfxRoutine);
+            _catchSfxRoutine = null;
+        }
+
         if (resetTimeScaleOnRetry)
             Time.timeScale = timeScaleAfterRetry;
 
@@ -621,6 +656,35 @@ public class PoliceLineOfSightCatch : MonoBehaviour
 
         if (debugLogRetryFlow)
             Debug.Log($"{debugLogPrefix} 戻る: 警告終了", this);
+    }
+
+    IEnumerator PlayCatchSfxSequence()
+    {
+        if (catchSfxSource == null)
+            catchSfxSource = GetComponent<AudioSource>();
+        if (catchSfxSource == null)
+        {
+            if (debugLogRetryFlow)
+                Debug.LogWarning($"{debugLogPrefix} 効果音: AudioSource がありません", this);
+            _catchSfxRoutine = null;
+            yield break;
+        }
+
+        if (catchSfxFirst != null)
+        {
+            catchSfxSource.PlayOneShot(catchSfxFirst, catchSfxVolume);
+            float wait = Mathf.Max(0f, catchSfxFirst.length) + Mathf.Max(0f, catchSfxExtraDelayAfterFirstSeconds);
+            yield return new WaitForSecondsRealtime(wait);
+        }
+        else if (catchSfxSecond != null && catchSfxExtraDelayAfterFirstSeconds > 0f)
+        {
+            yield return new WaitForSecondsRealtime(catchSfxExtraDelayAfterFirstSeconds);
+        }
+
+        if (catchSfxSecond != null)
+            catchSfxSource.PlayOneShot(catchSfxSecond, catchSfxVolume);
+
+        _catchSfxRoutine = null;
     }
 
 #if UNITY_EDITOR
