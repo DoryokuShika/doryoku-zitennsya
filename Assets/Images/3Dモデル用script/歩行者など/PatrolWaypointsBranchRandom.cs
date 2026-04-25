@@ -62,6 +62,16 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
     [Tooltip("オン: ベル退避が成立したときシーンの PedestrianBellObjectiveUi に残り人数を報告します。")]
     [SerializeField] bool reportBellDismissalToObjectiveUi = true;
 
+    [Header("Bell hide SFX (pedestrian disappears)")]
+    [Tooltip("歩行者がベルで退避（非表示化）する瞬間の効果音を鳴らす")]
+    [SerializeField] bool playHideSfxOnBellDismiss = true;
+    [Tooltip("未指定ならこのオブジェクトの AudioSource を使用")]
+    [SerializeField] AudioSource bellHideSfxSource;
+    [Tooltip("退避時に1回鳴らす効果音（悲鳴など）")]
+    [SerializeField] AudioClip bellHideSfxClip;
+    [Range(0f, 1f)]
+    [SerializeField] float bellHideSfxVolume = 1f;
+
     [Header("Bell hide / police catch (same as WrongWay / sidewalk)")]
     [Tooltip("警察に見えたベル退避の反則金。空白なら PoliceLineOfSightCatch の Catch Pedestrian Bell Fine Amount を使います。非空白のときは捕獲 UI の再適用にも優先されます。")]
     [SerializeField] string bellPoliceFineAmountText = "";
@@ -121,6 +131,9 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
             if (p != null)
                 playerBicycle = p.transform;
         }
+
+        if (bellHideSfxSource == null)
+            bellHideSfxSource = GetComponent<AudioSource>();
     }
 
     void OnValidate()
@@ -257,6 +270,7 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
             _animator.speed = 0f;
 
         EnsureVisualCaches();
+        PlayBellHideSfx();
         ApplyVisualAndColliderHidden(true);
         _bellAppliedVisualHide = true;
 
@@ -609,6 +623,15 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
         currentTarget = null;
         if (useNavMesh && navAgent != null && navAgent.isActiveAndEnabled)
             navAgent.ResetPath();
+    }
+
+    void PlayBellHideSfx()
+    {
+        if (!playHideSfxOnBellDismiss)
+            return;
+        if (bellHideSfxSource == null || bellHideSfxClip == null)
+            return;
+        bellHideSfxSource.PlayOneShot(bellHideSfxClip, bellHideSfxVolume);
     }
 
 #if UNITY_EDITOR
