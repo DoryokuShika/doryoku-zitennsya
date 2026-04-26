@@ -277,7 +277,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 206042616}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 206042618}
+        m_TargetAssemblyTypeName: Exitgame, Assembly-CSharp
+        m_MethodName: ExitGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &206042616
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -329,6 +341,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioSource: {fileID: 835731680}
+  quitImmediately: 1
+  maxWaitSecondsBeforeQuit: 2
+  forceKillProcessOnWindowsBuild: 1
+  forceKillDelaySeconds: 0.2
 --- !u!1 &354554674
 GameObject:
   m_ObjectHideFlags: 0
@@ -1830,9 +1846,9 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: c9497707b45dc624e9ee2bbb3c60947b, type: 3}
+  m_audioClip: {fileID: 8300000, guid: a26eac8b8c7a7ff459a123e0915a2808, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.24
   m_Pitch: 1
   Loop: 1
   Mute: 0
