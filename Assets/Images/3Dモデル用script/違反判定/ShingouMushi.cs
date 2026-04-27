@@ -243,6 +243,25 @@ public class ShingouMushi : MonoBehaviour
         _pendingResolutionAfterEnter = true;
     }
 
+    void OnTriggerStay(Collider other)
+    {
+        if (_useCrosswalkMode)
+            return;
+        if (!other.gameObject.CompareTag("Player"))
+            return;
+
+        _playerInsideMushiZone = true;
+
+        if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
+            return;
+
+        if (IsSignalMushiStrikeCooldownActive)
+            return;
+
+        // Enter 取りこぼしや、クールダウン明けにゾーン内へ残っているケースを補完する。
+        _pendingResolutionAfterEnter = true;
+    }
+
     /// <summary>Called from ShingouMushiCrosswalkRelay on each crosswalk block.</summary>
     public void OnCrosswalkTriggerEnter(CrosswalkFourWayTrafficController.CrosswalkSide side, Collider other)
     {
@@ -286,6 +305,37 @@ public class ShingouMushi : MonoBehaviour
         if (!other.gameObject.CompareTag("Player"))
             return;
         _playerInsideMushiZone = false;
+    }
+
+    public void OnCrosswalkTriggerStay(CrosswalkFourWayTrafficController.CrosswalkSide side, Collider other)
+    {
+        if (!other.gameObject.CompareTag("Player"))
+            return;
+        if (crosswalkTraffic == null)
+            return;
+
+        LastEnteredCrosswalkSide = side;
+        LastCrosswalkVehicleState = crosswalkTraffic.GetVehicleStateAtCrosswalkSide(side);
+        LastApproachCompassRequired = ResolveRequiredCompassForSide(side);
+        LastApproachHeadingMatched = !requireApproachCompassForViolation
+            || LastApproachCompassRequired == ApproachCompass.Any
+            || MeetsApproachCompass(other, LastApproachCompassRequired);
+
+        bool isRedForThisSide = LastCrosswalkVehicleState == 0;
+        bool headingOk = !requireApproachCompassForViolation || LastApproachHeadingMatched;
+
+        _playerInsideMushiZone = isRedForThisSide && headingOk;
+        if (!_playerInsideMushiZone)
+            return;
+
+        if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
+            return;
+
+        if (IsSignalMushiStrikeCooldownActive)
+            return;
+
+        // Enter 取りこぼしや、クールダウン明けにゾーン内へ残っているケースを補完する。
+        _pendingResolutionAfterEnter = true;
     }
 
     ApproachCompass ResolveRequiredCompassForSide(CrosswalkFourWayTrafficController.CrosswalkSide side)
@@ -543,5 +593,11 @@ public class ShingouMushiCrosswalkRelay : MonoBehaviour
     {
         if (_owner != null)
             _owner.OnCrosswalkTriggerExit(other);
+    }
+
+    void OnTriggerStay(Collider other)
+    {
+        if (_owner != null)
+            _owner.OnCrosswalkTriggerStay(_side, other);
     }
 }
