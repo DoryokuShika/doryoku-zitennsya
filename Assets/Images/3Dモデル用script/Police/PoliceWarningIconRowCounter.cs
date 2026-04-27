@@ -15,12 +15,14 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
     [SerializeField] RawImage[] warningSlots;
 
     [Header("リセット")]
-    [Tooltip("OnEnable で回数を0に戻し、全 RawImage を非表示にする")]
+    [Tooltip("初回 OnEnable で回数を0に戻し、全 RawImage を非表示にする")]
     [SerializeField] bool resetOnEnable = true;
 
     [Header("青切符2枚到達時の表示")]
     [Tooltip("青切符2枚以上になったら表示するパネル")]
     [SerializeField] GameObject twoTicketsWarningPanel;
+    [Tooltip("青切符2枚パネル表示中だけ非表示にする別UI（任意）")]
+    [SerializeField] GameObject hideUiWhileTwoTicketsWarningActive;
     [Tooltip("青切符2枚以上になったら表示する TMP テキスト")]
     [SerializeField] TMP_Text twoTicketsWarningTmp;
     [Tooltip("青切符2枚以上になったら表示する uGUI Text")]
@@ -30,16 +32,21 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
     [Header("青切符2枚到達後の遷移")]
     [Tooltip("2枚の状態で警告UIを閉じた瞬間に読み込むシーン名（Build Settings に登録）")]
     [SerializeField] string twoTicketsPoliceGameOverSceneName = "PoliceOver";
+    [Tooltip("指定シーン名が見つからない場合のフォールバック先")]
+    [SerializeField] string fallbackPoliceGameOverSceneName = "PoliceOver";
 
     int _warningCount;
     bool _gameOverTriggered;
+    bool _didFirstEnableInit;
 
     void OnEnable()
     {
         PoliceLineOfSightCatch.PoliceCatchShown += OnPoliceCatchShown;
         PoliceLineOfSightCatch.PoliceCatchClosed += OnPoliceCatchClosed;
-        if (resetOnEnable)
+        // 警告中の一時非表示→再表示で回数が消えると 2枚判定が壊れるため、初回だけ自動リセットする。
+        if (!_didFirstEnableInit && resetOnEnable)
             ResetCountAndIcons();
+        _didFirstEnableInit = true;
         ApplyTwoTicketsWarningText();
     }
 
@@ -54,8 +61,37 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
         Timer.isRunning = false;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-        if (!string.IsNullOrWhiteSpace(twoTicketsPoliceGameOverSceneName))
-            SceneManager.LoadScene(twoTicketsPoliceGameOverSceneName.Trim());
+
+        string primary = string.IsNullOrWhiteSpace(twoTicketsPoliceGameOverSceneName)
+            ? string.Empty
+            : twoTicketsPoliceGameOverSceneName.Trim();
+        string fallback = string.IsNullOrWhiteSpace(fallbackPoliceGameOverSceneName)
+            ? string.Empty
+            : fallbackPoliceGameOverSceneName.Trim();
+
+        if (!string.IsNullOrEmpty(primary) && Application.CanStreamedLevelBeLoaded(primary))
+        {
+            SceneManager.LoadScene(primary);
+            return;
+        }
+
+        // よくある入力揺れの救済（POleceOver -> PoliceOver）
+        if (string.Equals(primary, "POleceOver", System.StringComparison.OrdinalIgnoreCase) &&
+            Application.CanStreamedLevelBeLoaded("PoliceOver"))
+        {
+            SceneManager.LoadScene("PoliceOver");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(fallback) && Application.CanStreamedLevelBeLoaded(fallback))
+        {
+            SceneManager.LoadScene(fallback);
+            return;
+        }
+
+        // 読み込み失敗時に true のままだと次の戻るでも再挑戦できないため戻す。
+        _gameOverTriggered = false;
+        Debug.LogWarning("[PoliceWarningIconRowCounter] 遷移先シーンが見つかりません。Inspector のシーン名を確認してください。", this);
     }
 
     void OnPoliceCatchShown(PoliceCatchViolationKind _)
@@ -109,6 +145,8 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
         bool active = _warningCount >= 2;
         if (twoTicketsWarningPanel != null)
             twoTicketsWarningPanel.SetActive(active);
+        if (hideUiWhileTwoTicketsWarningActive != null)
+            hideUiWhileTwoTicketsWarningActive.SetActive(!active);
 
         if (twoTicketsWarningTmp != null)
         {
