@@ -46,7 +46,7 @@ public class ViolationTimes : MonoBehaviour
         TryLoadClearSceneIfAllComplete();
     }
 
-    /// <summary>?????��??????J?E???g?_?E???? 0 ????????????��???B</summary>
+    /// <summary>?????��??????J?E???g?_?E???? 0 ????????????��???B</summary>
     public static void NotifyUnlitLightsViolationComplete()
     {
         if (UnlitLightsViolationComplete)
@@ -55,7 +55,7 @@ public class ViolationTimes : MonoBehaviour
         TryLoadClearSceneIfAllComplete();
     }
 
-    /// <summary>���s�҃x���ڕW���N���A��������O���Ƃ��Ȃǂ� false �ɖ߂��܂��B</summary>
+    /// <summary>���s�҃x���ڕW���N���A��������O���Ƃ��Ȃǂ� false �ɖ߂��܂��B</summary>
     public static void ResetPedestrianBellObjectiveComplete()
     {
         PedestrianBellObjectiveComplete = false;
@@ -93,8 +93,21 @@ public class ViolationTimes : MonoBehaviour
         UnlitLightsViolationComplete = false;
     }
 
+    /// <summary>
+    /// 本編シーン（SampleScene）に入ったらフラグを毎回リセットする対象シーン名。
+    /// 別名にする場合はここを変更してください。
+    /// </summary>
+    static readonly string[] GameplaySceneNamesToResetOn = new string[]
+    {
+        "SampleScene",
+    };
+
     void Awake()
     {
+        // ビルド .exe で前回プレイのフラグが残るのを防ぐため、本編シーンの開始時には必ずリセット。
+        // （シーン未アタッチでも RuntimeInitialize 経由のリスナーで動くので保険）
+        ResetAll();
+
         var bell = FindObjectsOfType<PedestrianBellObjectiveUi>(includeInactive: true);
         if (bell == null || bell.Length == 0)
             NotifyPedestrianBellObjectiveComplete();
@@ -104,15 +117,32 @@ public class ViolationTimes : MonoBehaviour
             NotifyUnlitLightsViolationComplete();
     }
 
-#if UNITY_EDITOR
+    /// <summary>
+    /// .exe / エディタの両方で、起動直後と本編シーンに切り替わるたびに違反フラグを初期化する。
+    /// ViolationTimes コンポーネントがどのシーンにも貼られていなくても確実にリセットされる。
+    /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStaticsForEnterPlayMode()
+    static void RegisterAutoResetOnSceneLoad()
     {
-        SidewalkViolationComplete = false;
-        WrongWayViolationComplete = false;
-        SignalViolationComplete = false;
-        PedestrianBellObjectiveComplete = false;
-        UnlitLightsViolationComplete = false;
+        ResetAll();
+
+        SceneManager.sceneLoaded -= HandleSceneLoadedForViolationReset;
+        SceneManager.sceneLoaded += HandleSceneLoadedForViolationReset;
     }
-#endif
+
+    static void HandleSceneLoadedForViolationReset(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
+    {
+        if (GameplaySceneNamesToResetOn == null)
+            return;
+
+        for (int i = 0; i < GameplaySceneNamesToResetOn.Length; i++)
+        {
+            if (!string.IsNullOrEmpty(GameplaySceneNamesToResetOn[i])
+                && scene.name == GameplaySceneNamesToResetOn[i])
+            {
+                ResetAll();
+                return;
+            }
+        }
+    }
 }

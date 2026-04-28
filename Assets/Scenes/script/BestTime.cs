@@ -9,10 +9,10 @@ public class BestTime : MonoBehaviour
 
     void Start()
     {
-        // š•Û‘¶‚³‚ê‚½ƒxƒXƒgƒ^ƒCƒ€‚ğæ“¾‚µ‚Ä•\¦
+        // ï¿½ï¿½ï¿½Û‘ï¿½ï¿½ï¿½ï¿½ê‚½ï¿½xï¿½Xï¿½gï¿½^ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½Ä•\ï¿½ï¿½
         float best = ScoreManager.GetBestTime();
         int minutes = (int)(best / 60);
         int seconds = (int)(best % 60); 
-        bestTimeText.text = string.Format("Best Time: {0:00}:{1:00}", minutes, seconds);
+        bestTimeText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 }

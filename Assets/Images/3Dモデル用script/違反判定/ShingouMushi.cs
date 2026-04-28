@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -76,6 +77,10 @@ public class ShingouMushi : MonoBehaviour
     [Tooltip("After one mushi strike resolves, wait this long (unscaled seconds) before another strike can start.")]
     [SerializeField] float signalViolationCooldownSecondsAfterStrike = 2f;
 
+    [Header("Signal violation complete UI delay")]
+    [Tooltip("最終ストライクで「残り1回」を表示してから「完了」表示・ViolationTimes.NotifySignalViolationComplete に切り替えるまでの保持秒数（unscaled）。同フレーム内で残り表示が「完了」へ即上書きされる問題を防ぐ。")]
+    [SerializeField] float signalCompleteUiHoldSeconds = 0.6f;
+
     [Header("Violation complete UI (mushi)")]
     [SerializeField] TMP_Text signalViolationCompleteTmp;
     [SerializeField] Text signalViolationCompleteUi;
@@ -118,6 +123,20 @@ public class ShingouMushi : MonoBehaviour
     bool _useCrosswalkMode;
     int _strikesRemaining = -1;
     float _mushiStrikeCooldownUntilUnscaled = float.NegativeInfinity;
+    bool _strikeRegisteredForCurrentInside;
+    bool _signalCompleteUiApplied;
+    bool _signalCompletePending;
+    float _signalCompleteUiDelayUntilUnscaled = float.NegativeInfinity;
+    float _lastPlayerTriggerSeenUnscaled = float.NegativeInfinity;
+    [SerializeField] float insideStateStaleTimeoutSeconds = 0.35f;
+
+    /// <summary>
+    /// クロスウォークモード時、現在違反状態（赤＋プレイヤー侵入中＋向き条件OK）の側を保持する集合。
+    /// 4ブロック間で <see cref="_playerInsideMushiZone"/> が競合上書きされてカウント漏れする問題を防ぐため、
+    /// 「どれか1側でも違反中ならゾーン内扱い」のロジックを集合化する。
+    /// </summary>
+    readonly HashSet<CrosswalkFourWayTrafficController.CrosswalkSide> _activeCrosswalkViolatingSides
+        = new HashSet<CrosswalkFourWayTrafficController.CrosswalkSide>();
 
     /// <summary>Last crosswalk side the player entered (crosswalk mode).</summary>
     public CrosswalkFourWayTrafficController.CrosswalkSide LastEnteredCrosswalkSide { get; private set; }
@@ -177,6 +196,7 @@ public class ShingouMushi : MonoBehaviour
     void OnValidate()
     {
         signalViolationCooldownSecondsAfterStrike = Mathf.Max(0f, signalViolationCooldownSecondsAfterStrike);
+        insideStateStaleTimeoutSeconds = Mathf.Max(0.05f, insideStateStaleTimeoutSeconds);
     }
 
     bool HasAnyCrosswalkBlock()
@@ -216,13 +236,19 @@ public class ShingouMushi : MonoBehaviour
 
     public static float ClearTime = 0;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStaticRuntimeState()
+    {
+        ClearTime = 0f;
+    }
+
     void OnTriggerExit(Collider other)
     {
         if (_useCrosswalkMode)
             return;
         if (!other.gameObject.CompareTag("Player"))
             return;
-        _playerInsideMushiZone = false;
+        SetInsideState(false);
     }
 
     void OnTriggerEnter(Collider other)
@@ -232,7 +258,8 @@ public class ShingouMushi : MonoBehaviour
         if (!other.gameObject.CompareTag("Player"))
             return;
 
-        _playerInsideMushiZone = true;
+        _lastPlayerTriggerSeenUnscaled = Time.unscaledTime;
+        SetInsideState(true);
 
         if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
             return;
@@ -240,7 +267,8 @@ public class ShingouMushi : MonoBehaviour
         if (IsSignalMushiStrikeCooldownActive)
             return;
 
-        _pendingResolutionAfterEnter = true;
+        if (!_strikeRegisteredForCurrentInside)
+            _pendingResolutionAfterEnter = true;
     }
 
     void OnTriggerStay(Collider other)
@@ -250,7 +278,8 @@ public class ShingouMushi : MonoBehaviour
         if (!other.gameObject.CompareTag("Player"))
             return;
 
-        _playerInsideMushiZone = true;
+        _lastPlayerTriggerSeenUnscaled = Time.unscaledTime;
+        SetInsideState(true);
 
         if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
             return;
@@ -259,7 +288,8 @@ public class ShingouMushi : MonoBehaviour
             return;
 
         // Enter 取りこぼしや、クールダウン明けにゾーン内へ残っているケースを補完する。
-        _pendingResolutionAfterEnter = true;
+        if (!_strikeRegisteredForCurrentInside)
+            _pendingResolutionAfterEnter = true;
     }
 
     /// <summary>Called from ShingouMushiCrosswalkRelay on each crosswalk block.</summary>
@@ -270,26 +300,12 @@ public class ShingouMushi : MonoBehaviour
         if (crosswalkTraffic == null)
             return;
 
-        LastEnteredCrosswalkSide = side;
-        LastCrosswalkVehicleState = crosswalkTraffic.GetVehicleStateAtCrosswalkSide(side);
-        LastApproachCompassRequired = ResolveRequiredCompassForSide(side);
-        LastApproachHeadingMatched = !requireApproachCompassForViolation
-            || LastApproachCompassRequired == ApproachCompass.Any
-            || MeetsApproachCompass(other, LastApproachCompassRequired);
+        _lastPlayerTriggerSeenUnscaled = Time.unscaledTime;
+        bool conditionsMet = EvaluateSideViolation(side, other);
+        UpdateCrosswalkSideActivity(side, conditionsMet);
 
-        if (LastCrosswalkVehicleState != 0)
-        {
-            _playerInsideMushiZone = false;
+        if (!conditionsMet)
             return;
-        }
-
-        if (requireApproachCompassForViolation && !LastApproachHeadingMatched)
-        {
-            _playerInsideMushiZone = false;
-            return;
-        }
-
-        _playerInsideMushiZone = true;
 
         if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
             return;
@@ -297,14 +313,32 @@ public class ShingouMushi : MonoBehaviour
         if (IsSignalMushiStrikeCooldownActive)
             return;
 
-        _pendingResolutionAfterEnter = true;
+        if (!_strikeRegisteredForCurrentInside)
+            _pendingResolutionAfterEnter = true;
     }
 
+    /// <summary>
+    /// 各クロスウォークブロックの Exit から呼ばれる。古いオーバーロード互換用。
+    /// 個別の側を渡す版（<see cref="OnCrosswalkTriggerExit(CrosswalkFourWayTrafficController.CrosswalkSide, Collider)"/>）
+    /// を優先して使用してください。側が分からない場合は安全側として全側をクリアします。
+    /// </summary>
     public void OnCrosswalkTriggerExit(Collider other)
     {
         if (!other.gameObject.CompareTag("Player"))
             return;
-        _playerInsideMushiZone = false;
+        // 側が分からないとき：すべての側を一括クリア（プレイヤーが完全に交差点から離れたケース）。
+        _activeCrosswalkViolatingSides.Clear();
+        SetInsideState(false);
+    }
+
+    /// <summary>側を指定してExitを処理する版。同一プレイヤーが他ブロックに居る場合に他側を保持する。</summary>
+    public void OnCrosswalkTriggerExit(CrosswalkFourWayTrafficController.CrosswalkSide side, Collider other)
+    {
+        if (!other.gameObject.CompareTag("Player"))
+            return;
+        // 出た側だけをクリア。他側がまだ違反中なら _playerInsideMushiZone は維持される。
+        _activeCrosswalkViolatingSides.Remove(side);
+        SetInsideState(_activeCrosswalkViolatingSides.Count > 0);
     }
 
     public void OnCrosswalkTriggerStay(CrosswalkFourWayTrafficController.CrosswalkSide side, Collider other)
@@ -314,18 +348,11 @@ public class ShingouMushi : MonoBehaviour
         if (crosswalkTraffic == null)
             return;
 
-        LastEnteredCrosswalkSide = side;
-        LastCrosswalkVehicleState = crosswalkTraffic.GetVehicleStateAtCrosswalkSide(side);
-        LastApproachCompassRequired = ResolveRequiredCompassForSide(side);
-        LastApproachHeadingMatched = !requireApproachCompassForViolation
-            || LastApproachCompassRequired == ApproachCompass.Any
-            || MeetsApproachCompass(other, LastApproachCompassRequired);
+        _lastPlayerTriggerSeenUnscaled = Time.unscaledTime;
+        bool conditionsMet = EvaluateSideViolation(side, other);
+        UpdateCrosswalkSideActivity(side, conditionsMet);
 
-        bool isRedForThisSide = LastCrosswalkVehicleState == 0;
-        bool headingOk = !requireApproachCompassForViolation || LastApproachHeadingMatched;
-
-        _playerInsideMushiZone = isRedForThisSide && headingOk;
-        if (!_playerInsideMushiZone)
+        if (!conditionsMet)
             return;
 
         if (ViolationTimes.SignalViolationComplete && !keepPoliceCatchAfterObjectiveComplete)
@@ -335,7 +362,52 @@ public class ShingouMushi : MonoBehaviour
             return;
 
         // Enter 取りこぼしや、クールダウン明けにゾーン内へ残っているケースを補完する。
-        _pendingResolutionAfterEnter = true;
+        if (!_strikeRegisteredForCurrentInside)
+            _pendingResolutionAfterEnter = true;
+    }
+
+    /// <summary>
+    /// 指定した側で違反条件（赤信号 + 向き一致）を満たすか判定し、Last* プロパティも更新する。
+    /// </summary>
+    bool EvaluateSideViolation(CrosswalkFourWayTrafficController.CrosswalkSide side, Collider other)
+    {
+        LastEnteredCrosswalkSide = side;
+        LastCrosswalkVehicleState = crosswalkTraffic.GetVehicleStateAtCrosswalkSide(side);
+        LastApproachCompassRequired = ResolveRequiredCompassForSide(side);
+        LastApproachHeadingMatched = !requireApproachCompassForViolation
+            || LastApproachCompassRequired == ApproachCompass.Any
+            || MeetsApproachCompass(other, LastApproachCompassRequired);
+
+        bool isRedForThisSide = LastCrosswalkVehicleState == 0;
+        bool headingOk = !requireApproachCompassForViolation || LastApproachHeadingMatched;
+        return isRedForThisSide && headingOk;
+    }
+
+    /// <summary>
+    /// 側ごとの違反状態を集合に反映し、集合が空かどうかで <see cref="_playerInsideMushiZone"/> を更新する。
+    /// 別ブロックの Stay 競合や、Exit の上書きでカウントが消えるバグを防ぐ。
+    /// </summary>
+    void UpdateCrosswalkSideActivity(CrosswalkFourWayTrafficController.CrosswalkSide side, bool isViolatingNow)
+    {
+        if (isViolatingNow)
+            _activeCrosswalkViolatingSides.Add(side);
+        else
+            _activeCrosswalkViolatingSides.Remove(side);
+
+        SetInsideState(_activeCrosswalkViolatingSides.Count > 0);
+    }
+
+    void SetInsideState(bool inside)
+    {
+        if (_playerInsideMushiZone == inside)
+            return;
+
+        _playerInsideMushiZone = inside;
+        if (!inside)
+        {
+            _pendingResolutionAfterEnter = false;
+            _strikeRegisteredForCurrentInside = false;
+        }
     }
 
     ApproachCompass ResolveRequiredCompassForSide(CrosswalkFourWayTrafficController.CrosswalkSide side)
@@ -381,6 +453,9 @@ public class ShingouMushi : MonoBehaviour
 
     void LateUpdate()
     {
+        AutoRecoverStaleInsideState();
+        SyncSignalCompleteUiIfNeeded();
+        ApplyDelayedSignalCompletionIfDue();
         RefreshOngoingSignalForPoliceUi();
 
         if (!_pendingResolutionAfterEnter)
@@ -399,6 +474,7 @@ public class ShingouMushi : MonoBehaviour
         }
 
         _pendingResolutionAfterEnter = false;
+        _strikeRegisteredForCurrentInside = true;
 
         bool policeSeesPlayerOnMushiFrame = PoliceLineOfSightState.IsTargetInPoliceSightNow;
 
@@ -429,18 +505,20 @@ public class ShingouMushi : MonoBehaviour
 
                 if (_strikesRemaining <= 0)
                 {
-                    ApplyViolationUiAllTargets(
-                        signalViolationCompleteLabel,
-                        completedWhenNotSpottedTextColor,
-                        signalViolationCompleteTextColor,
-                        additionalNotSpottedTextColor);
-                    ViolationTimes.NotifySignalViolationComplete();
+                    // 同フレームで「残り1回」を「完了」へ上書きせず、保持時間のあとに切替える。
+                    _signalCompletePending = true;
+                    _signalCompleteUiDelayUntilUnscaled = Time.unscaledTime + Mathf.Max(0f, signalCompleteUiHoldSeconds);
                 }
             }
         }
 
         if (showCatchUiWhenPoliceSeePlayerOnMushiComplete && policeSeesPlayerOnMushiFrame)
         {
+            if (PoliceLineOfSightCatch.IsCatchUiBusyNow())
+            {
+                BeginMushiStrikeCooldown();
+                return;
+            }
             ViolationFineAmountDisplay.SetFineText(
                 fineAmountText,
                 fineAmountDisplayTmp,
@@ -452,6 +530,71 @@ public class ShingouMushi : MonoBehaviour
         }
 
         BeginMushiStrikeCooldown();
+    }
+
+    void AutoRecoverStaleInsideState()
+    {
+        if (!_playerInsideMushiZone)
+            return;
+
+        float timeout = Mathf.Max(0.05f, insideStateStaleTimeoutSeconds);
+        if (Time.unscaledTime - _lastPlayerTriggerSeenUnscaled <= timeout)
+            return;
+
+        _activeCrosswalkViolatingSides.Clear();
+        SetInsideState(false);
+    }
+
+    void SyncSignalCompleteUiIfNeeded()
+    {
+        if (ViolationTimes.SignalViolationComplete)
+        {
+            if (_signalCompleteUiApplied)
+                return;
+
+            ApplyViolationUiAllTargets(
+                signalViolationCompleteLabel,
+                completedWhenNotSpottedTextColor,
+                signalViolationCompleteTextColor,
+                additionalNotSpottedTextColor);
+            _signalCompleteUiApplied = true;
+            return;
+        }
+
+        _signalCompleteUiApplied = false;
+        if (_strikesRemaining <= 0 && !_signalCompletePending)
+            _strikesRemaining = -1;
+    }
+
+    /// <summary>
+    /// 最終ストライクで「残り1回」を見せたあと、保持時間が経過してから
+    /// 「完了」UI と <see cref="ViolationTimes.NotifySignalViolationComplete"/> を発火する。
+    /// 同一フレーム内で残り表示が即上書きされる問題への対策。
+    /// </summary>
+    void ApplyDelayedSignalCompletionIfDue()
+    {
+        if (!_signalCompletePending)
+            return;
+
+        if (Time.unscaledTime < _signalCompleteUiDelayUntilUnscaled)
+            return;
+
+        _signalCompletePending = false;
+
+        // すでに ViolationTimes が完了済み（他経路で先行）なら UI 反映だけ任せて重複通知を避ける。
+        if (ViolationTimes.SignalViolationComplete)
+        {
+            _signalCompleteUiApplied = true;
+            return;
+        }
+
+        ApplyViolationUiAllTargets(
+            signalViolationCompleteLabel,
+            completedWhenNotSpottedTextColor,
+            signalViolationCompleteTextColor,
+            additionalNotSpottedTextColor);
+        ViolationTimes.NotifySignalViolationComplete();
+        _signalCompleteUiApplied = true;
     }
 
     void BeginMushiStrikeCooldown()
@@ -592,7 +735,7 @@ public class ShingouMushiCrosswalkRelay : MonoBehaviour
     void OnTriggerExit(Collider other)
     {
         if (_owner != null)
-            _owner.OnCrosswalkTriggerExit(other);
+            _owner.OnCrosswalkTriggerExit(_side, other);
     }
 
     void OnTriggerStay(Collider other)

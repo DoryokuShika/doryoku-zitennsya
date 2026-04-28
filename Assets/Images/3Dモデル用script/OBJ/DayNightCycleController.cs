@@ -117,6 +117,10 @@ public class DayNightCycleController : MonoBehaviour
     [Tooltip("一時停止中も時間を進める")]
     [SerializeField] bool advanceTimeWhileTrafficPaused;
 
+    [Header("Skybox 切替時の挙動")]
+    [Tooltip("Skybox を切替えたときに DynamicGI.UpdateEnvironment を呼ぶ。AmbientMode が Skybox のときのみ意味がある。Trilight/Flat や Realtime GI オフの構成ではオフ推奨（フェーズ遷移時の一瞬のカクつきを防ぐ）。")]
+    [SerializeField] bool callDynamicGiUpdateOnSkyboxChange;
+
     int _phaseIndex;
     float _elapsedInPhase;
 
@@ -215,7 +219,8 @@ public class DayNightCycleController : MonoBehaviour
         if (sky != null && RenderSettings.skybox != sky)
         {
             RenderSettings.skybox = sky;
-            DynamicGI.UpdateEnvironment();
+            if (callDynamicGiUpdateOnSkyboxChange)
+                DynamicGI.UpdateEnvironment();
         }
     }
 

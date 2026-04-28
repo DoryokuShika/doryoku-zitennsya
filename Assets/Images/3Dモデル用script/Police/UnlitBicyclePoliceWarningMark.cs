@@ -127,12 +127,11 @@ public class UnlitBicyclePoliceWarningMark : MonoBehaviour
             return;
 
         bool policeSee = PoliceLineOfSightState.IsTargetInPoliceSightNow;
-        bool cursorOk = Cursor.lockState == CursorLockMode.Locked;
-
         bool policeCatchActive = IsUnlitRuleViolationActiveNow() ||
                                  (keepPoliceCatchAfterObjectiveComplete && _countdownCompleted && dark && !lightsOn);
+        PlayerViolationState.ReportOngoingUnlitViolation(policeCatchActive && !paused);
 
-        if (!policeCatchActive || !policeSee || !cursorOk || paused)
+        if (!policeCatchActive || !policeSee || paused || PoliceLineOfSightCatch.IsCatchUiBusyNow())
             return;
 
         PoliceLineOfSightCatch.NotifyUnlitBicycleFineForNextCatch(fineAmountText);

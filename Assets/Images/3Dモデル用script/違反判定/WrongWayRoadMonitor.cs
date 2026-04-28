@@ -209,6 +209,8 @@ public class WrongWayRoadMonitor : MonoBehaviour
             policeCatchActive &&
             PoliceLineOfSightState.IsTargetInPoliceSightNow)
         {
+            if (PoliceLineOfSightCatch.IsCatchUiBusyNow())
+                return;
             ViolationFineAmountDisplay.SetFineText(
                 fineAmountText,
                 fineAmountDisplayTmp,

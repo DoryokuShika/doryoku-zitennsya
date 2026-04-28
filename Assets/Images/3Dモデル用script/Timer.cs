@@ -6,6 +6,14 @@ public class Timer : MonoBehaviour
 {
     public static float timer = 0;
     public static bool isRunning = true;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStaticRuntimeState()
+    {
+        timer = 0f;
+        isRunning = true;
+    }
+
     // Start is called before the first frame update
     void Start()
     {

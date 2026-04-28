@@ -29,6 +29,15 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
     [SerializeField] Text twoTicketsWarningUi;
     [SerializeField] string twoTicketsWarningMessage = "青切符2枚です。運転中に警察に見られるとゲームオーバーになります。";
 
+    [Header("所持金0円到達時の表示（偽警察）")]
+    [Tooltip("所持金0円になったとき表示するパネル（任意）")]
+    [SerializeField] GameObject moneyZeroWarningPanel;
+    [Tooltip("所持金0円になったとき表示する TMP テキスト（任意）")]
+    [SerializeField] TMP_Text moneyZeroWarningTmp;
+    [Tooltip("所持金0円になったとき表示する uGUI Text（任意）")]
+    [SerializeField] Text moneyZeroWarningUi;
+    [SerializeField] string moneyZeroWarningMessage = "所持金が0円です。";
+
     [Header("青切符2枚到達後の遷移")]
     [Tooltip("2枚の状態で警告UIを閉じた瞬間に読み込むシーン名（Build Settings に登録）")]
     [SerializeField] string twoTicketsPoliceGameOverSceneName = "PoliceOver";
@@ -101,6 +110,7 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
         if (warningSlots == null || index < 0 || index >= warningSlots.Length)
         {
             ApplyTwoTicketsWarningText();
+            ApplyMoneyZeroWarningText();
             return;
         }
 
@@ -108,6 +118,7 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
             warningSlots[index].gameObject.SetActive(true);
 
         ApplyTwoTicketsWarningText();
+        ApplyMoneyZeroWarningText();
     }
 
     void OnPoliceCatchClosed()
@@ -135,6 +146,7 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
         }
 
         ApplyTwoTicketsWarningText();
+        ApplyMoneyZeroWarningText();
     }
 
     // 旧メソッド名を残して既存の UnityEvent 参照を壊しにくくする
@@ -159,6 +171,33 @@ public class PoliceWarningIconRowCounter : MonoBehaviour
             twoTicketsWarningUi.gameObject.SetActive(active);
             if (active)
                 twoTicketsWarningUi.text = twoTicketsWarningMessage;
+        }
+    }
+
+    void Update()
+    {
+        // 偽警察は青切符イベントを抑止するため、毎フレームUIを同期して表示漏れを防ぐ。
+        ApplyMoneyZeroWarningText();
+    }
+
+    void ApplyMoneyZeroWarningText()
+    {
+        bool active = RotatingPoliceVisionWatcher.IsAnyFakePoliceMoneyZeroNow;
+        if (moneyZeroWarningPanel != null)
+            moneyZeroWarningPanel.SetActive(active);
+
+        if (moneyZeroWarningTmp != null)
+        {
+            moneyZeroWarningTmp.gameObject.SetActive(active);
+            if (active)
+                moneyZeroWarningTmp.text = moneyZeroWarningMessage;
+        }
+
+        if (moneyZeroWarningUi != null)
+        {
+            moneyZeroWarningUi.gameObject.SetActive(active);
+            if (active)
+                moneyZeroWarningUi.text = moneyZeroWarningMessage;
         }
     }
 

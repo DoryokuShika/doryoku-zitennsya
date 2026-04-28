@@ -177,6 +177,8 @@ public class SidewalkOnlyTextColor : MonoBehaviour
             policeCatchActive &&
             PoliceLineOfSightState.IsTargetInPoliceSightNow)
         {
+            if (PoliceLineOfSightCatch.IsCatchUiBusyNow())
+                return;
             ViolationFineAmountDisplay.SetFineText(
                 fineAmountText,
                 fineAmountDisplayTmp,

@@ -243,6 +243,9 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
         if (reportBellDismissalToObjectiveUi)
             PedestrianBellObjectiveUi.NotifyBellDismissed();
 
+        // 偽警察など「違反種別を集約して捕獲する側」に歩行者ベル違反を伝える。
+        PlayerViolationState.NotifyPedestrianBellViolationMoment(2f);
+
         _bellSavedPos = transform.position;
         _bellSavedRot = transform.rotation;
         _bellSavedTarget = currentTarget;
@@ -276,6 +279,12 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
 
         if (PoliceLineOfSightState.IsTargetInPoliceSightNow)
         {
+            if (PoliceLineOfSightCatch.IsCatchUiBusyNow())
+            {
+                yield return new WaitForSecondsRealtime(hideSeconds);
+                FinishBellHideAfterWait();
+                yield break;
+            }
             PoliceLineOfSightCatch.NotifyPedestrianBellFineFromPatrolForNextCatch(bellPoliceFineAmountText);
             if (!string.IsNullOrWhiteSpace(bellPoliceFineAmountText))
             {
@@ -291,7 +300,11 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
         }
 
         yield return new WaitForSecondsRealtime(hideSeconds);
+        FinishBellHideAfterWait();
+    }
 
+    void FinishBellHideAfterWait()
+    {
         if (playerBicycle != null &&
             IsTransformWithinRadiusAtPosition(
                 _bellSavedPos,
@@ -303,7 +316,7 @@ public class PatrolWaypointsBranchRandom : MonoBehaviour
             _bellHideRoutineActive = false;
             _bellHideCoroutine = null;
             Gemeover.TriggerWalkerCollisionGameOver();
-            yield break;
+            return;
         }
 
         RestoreBellHidePhysicsAndVisualsOnly();
