@@ -25,7 +25,7 @@ Unity で制作した自転車走行シミュレーションゲームです。
 └── README.md                  # このファイル
 ```
 
-> **注意:** `Library/`、`Logs/`、`UserSettings/`、`obj/` は Unity が自動生成するフォルダです。`.gitignore` により Git 管理外です。
+> ※ `Library/`、`Logs/`、`UserSettings/`、`obj/` は Unity が自動生成するフォルダです。`.gitignore` により Git 管理外です。
 
 ---
 
