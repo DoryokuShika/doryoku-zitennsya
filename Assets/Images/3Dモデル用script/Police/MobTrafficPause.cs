@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Tag が Car / Walker のオブジェクトに加え、任意でプレイヤー自転車・警察オブジェクトも含め、
@@ -8,9 +9,8 @@ using UnityEngine.AI;
 /// </summary>
 public static class MobTrafficPause
 {
-#if UNITY_EDITOR
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStaticsForEnterPlayMode()
+    static void ResetStaticsForSubsystemRegistration()
     {
         _frozen = false;
         Rigidbodies.Clear();
@@ -19,8 +19,19 @@ public static class MobTrafficPause
         DupRigidbodies.Clear();
         DupAgents.Clear();
         DupAnimators.Clear();
+
+        SceneManager.sceneLoaded -= OnSceneLoadedClearStaleFreeze;
+        SceneManager.sceneLoaded += OnSceneLoadedClearStaleFreeze;
     }
-#endif
+
+    /// <summary>
+    /// 警告 UI や一時停止を経ずにシーン遷移した場合、前シーンの Freeze 状態が残ると次シーンで自転車が動かないため、読み込み直後に必ず解除する。
+    /// </summary>
+    static void OnSceneLoadedClearStaleFreeze(Scene scene, LoadSceneMode mode)
+    {
+        if (_frozen)
+            UnfreezeCarAndWalkerMobs();
+    }
     struct RigidbodySnap
     {
         public Rigidbody Body;

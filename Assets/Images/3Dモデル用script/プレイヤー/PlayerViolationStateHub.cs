@@ -48,8 +48,8 @@ public class PlayerViolationStateHub : MonoBehaviour
 
     void LateUpdate()
     {
-        bool w = wrongWayMonitor != null && wrongWayMonitor.IsWrongWayRuleViolationActiveNow();
-        bool s = sidewalkMonitor != null && sidewalkMonitor.IsSidewalkRuleViolationActiveNow();
+        bool w = wrongWayMonitor != null && wrongWayMonitor.IsWrongWayViolatingForPlayerStateAggregator();
+        bool s = sidewalkMonitor != null && sidewalkMonitor.IsSidewalkViolatingForPlayerStateAggregator();
         PlayerViolationState.Rebuild(w, s);
     }
 }

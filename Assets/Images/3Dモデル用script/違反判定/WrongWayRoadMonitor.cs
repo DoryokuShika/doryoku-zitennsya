@@ -107,12 +107,21 @@ public class WrongWayRoadMonitor : MonoBehaviour
     float _remainingWrongWaySeconds;
     bool _countdownCompleted;
     bool _ruleViolationActiveSnapshot;
+    /// <summary>
+    /// <see cref="PlayerViolationStateHub"/> 用。目的完了後も <see cref="LateUpdate"/> 内の警察捕獲条件と同じ真偽を保持する。
+    /// </summary>
+    bool _violatingForPlayerStateAggregator;
 
     /// <summary>
     /// UI が逆走ハイライトで点滅している間ずっと true（<see cref="ApplyGlowVisual"/> と同じ条件で同期）。
     /// <see cref="PlayerViolationStateHub"/> / 警察視界用。
     /// </summary>
     public bool IsWrongWayRuleViolationActiveNow() => _ruleViolationActiveSnapshot;
+
+    /// <summary>
+    /// 偽警察・集約違反フラグ用。逆走カウント完了後も <c>keepPoliceCatchAfterObjectiveComplete</c> で捕獲文脈が続く間は true。
+    /// </summary>
+    public bool IsWrongWayViolatingForPlayerStateAggregator() => _violatingForPlayerStateAggregator;
 
     void Awake()
     {
@@ -141,6 +150,7 @@ public class WrongWayRoadMonitor : MonoBehaviour
         if (travelState == null || monitoredRoads == null || monitoredRoads.Count == 0)
         {
             ApplyGlowVisual(false, false);
+            _violatingForPlayerStateAggregator = false;
             return;
         }
 
@@ -204,6 +214,8 @@ public class WrongWayRoadMonitor : MonoBehaviour
 
         bool policeCatchActive = IsWrongWayRuleViolationActiveNow() ||
                                  (keepPoliceCatchAfterObjectiveComplete && _countdownCompleted && anyWrong);
+
+        _violatingForPlayerStateAggregator = policeCatchActive;
 
         if (requestPoliceCatchWhenSpottedDuringWrongWay &&
             policeCatchActive &&

@@ -19,6 +19,10 @@ public class RotatingPoliceVisionWatcher : MonoBehaviour
     [SerializeField] Space rotateSpace = Space.World;
     [SerializeField] Vector3 rotateAxis = Vector3.up;
     [SerializeField] float rotateStepDegrees = 90f;
+    [Tooltip("オン: rotateStepDegrees の代わりに、下の候補角度から毎回ランダムで選んで回転します。")]
+    [SerializeField] bool randomizeRotateStepFromCandidates;
+    [Tooltip("randomizeRotateStepFromCandidates がオンのときに使う候補角度（例: 0,90,180,270）。")]
+    [SerializeField] float[] randomRotateStepCandidates = new float[] { 0f, 90f, 180f, 270f };
     [SerializeField] float rotateIntervalSeconds = 20f;
     [SerializeField] bool useUnscaledTimeForRotation = false;
 
@@ -129,8 +133,21 @@ public class RotatingPoliceVisionWatcher : MonoBehaviour
         while (_rotateTimer >= interval)
         {
             _rotateTimer -= interval;
-            rotatingObject.Rotate(rotateAxis.normalized, rotateStepDegrees, rotateSpace);
+            float step = ResolveRotateStepDegrees();
+            rotatingObject.Rotate(rotateAxis.normalized, step, rotateSpace);
         }
+    }
+
+    float ResolveRotateStepDegrees()
+    {
+        if (!randomizeRotateStepFromCandidates)
+            return rotateStepDegrees;
+
+        if (randomRotateStepCandidates == null || randomRotateStepCandidates.Length == 0)
+            return rotateStepDegrees;
+
+        int idx = Random.Range(0, randomRotateStepCandidates.Length);
+        return randomRotateStepCandidates[idx];
     }
 
     void LateUpdate()

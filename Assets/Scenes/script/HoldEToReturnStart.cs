@@ -71,6 +71,9 @@ public class HoldEToReturnStart : MonoBehaviour
             return;
         }
 
+        // 警察警告の一時停止を「戻る」以外（長押しでタイトルへ）で抜けたときに残ると、次のゲームで自転車が動かない
+        MobTrafficPause.UnfreezeCarAndWalkerMobs();
+
         SceneManager.LoadScene(scene);
     }
 }

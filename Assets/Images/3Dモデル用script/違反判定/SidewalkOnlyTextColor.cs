@@ -96,6 +96,11 @@ public class SidewalkOnlyTextColor : MonoBehaviour
     readonly HashSet<Collider> _touchingRoad = new HashSet<Collider>();
     float _accumulatedSidewalkTime;
 
+    /// <summary>
+    /// <see cref="PlayerViolationStateHub"/> 用。歩道目的完了後も <see cref="LateUpdate"/> 内の警察捕獲条件と同じ真偽を保持する。
+    /// </summary>
+    bool _violatingForPlayerStateAggregator;
+
     void Awake()
     {
         if (speedSourceBody == null)
@@ -172,6 +177,8 @@ public class SidewalkOnlyTextColor : MonoBehaviour
 
         bool policeCatchActive = IsSidewalkRuleViolationActiveNow() ||
                                  (keepPoliceCatchAfterObjectiveComplete && _runCompleted && IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld() && IsMovingNow());
+
+        _violatingForPlayerStateAggregator = policeCatchActive;
 
         if (requestPoliceCatchWhenSpottedDuringSidewalkViolation &&
             policeCatchActive &&
@@ -334,6 +341,11 @@ public class SidewalkOnlyTextColor : MonoBehaviour
             return false;
         return IsOnSidewalkForTimerAndUi() && !IsLeftHandSignalHeld() && IsMovingNow();
     }
+
+    /// <summary>
+    /// 偽警察・集約違反フラグ用。歩道カウント完了後も <c>keepPoliceCatchAfterObjectiveComplete</c> で捕獲文脈が続く間は true。
+    /// </summary>
+    public bool IsSidewalkViolatingForPlayerStateAggregator() => _violatingForPlayerStateAggregator;
 
     bool IsMovingNow()
     {
