@@ -10,7 +10,6 @@ Unity で制作した自転車走行シミュレーションゲームです。
 | 言語 | C# |
 | 解像度（既定） | 1920 × 1080 |
 <img width="253" height="265" alt="スクリーンショット 2026-04-08 012250" src="https://github.com/user-attachments/assets/10ffa102-704f-4634-93e7-9ddfecf280d0" />
----
 
 ## リポジトリ構成
 
